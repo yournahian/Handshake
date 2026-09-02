@@ -86,7 +86,7 @@ export function HeaderWallet() {
               {shortAddr}
             </div>
             {circleEmail && (
-              <div style={{ fontSize: "0.63rem", color: "#6b7280", lineHeight: 1.2 }}>
+              <div className="hidden sm:block" style={{ fontSize: "0.63rem", color: "#6b7280", lineHeight: 1.2 }}>
                 {circleEmail.length > 20 ? circleEmail.slice(0, 18) + "…" : circleEmail}
               </div>
             )}

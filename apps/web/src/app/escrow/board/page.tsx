@@ -385,7 +385,7 @@ export default function EscrowBoardPage() {
       </div>
 
       {/* Filters */}
-      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+      <div className="board-filter-bar" style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
         <div style={{
           flex: 1, minWidth: "200px",
           display: "flex", alignItems: "center", gap: "8px",
@@ -443,8 +443,8 @@ export default function EscrowBoardPage() {
           (filteredItems as BoardEscrow[]).map(e => (
             <div
               key={e.id}
-              className="glass-card"
-              style={{ padding: "20px", cursor: "pointer", display: "flex", alignItems: "center", gap: "16px", border: "1px solid var(--border-color)", transition: "border-color 0.2s" }}
+              className="glass-card board-item-card"
+              style={{ cursor: "pointer", transition: "border-color 0.2s" }}
               onClick={() => router.push(`/escrow/${e.id}`)}
               onMouseEnter={e => e.currentTarget.style.borderColor = "var(--primary)"}
               onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border-color)"}
@@ -459,7 +459,7 @@ export default function EscrowBoardPage() {
                 {e.isPhysical ? <MapPin size={18} /> : <Zap size={18} />}
               </div>
 
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="board-item-body" style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
                   <span style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>#{e.id}</span>
                   <span style={{
@@ -478,21 +478,22 @@ export default function EscrowBoardPage() {
                 </p>
               </div>
 
-              <div style={{ textAlign: "right", flexShrink: 0, marginRight: "10px" }}>
-                <div style={{ fontWeight: 800, fontSize: "1rem", color: "#10b981" }}>
-                  {parseFloat(e.budget).toFixed(2)} USDC
+              <div className="board-item-actions">
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: "1rem", color: "#10b981" }}>
+                    {parseFloat(e.budget).toFixed(2)} USDC
+                  </div>
+                  <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "2px" }}>Budget</div>
                 </div>
-                <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "2px" }}>Budget</div>
+                <ArrowRight size={16} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
               </div>
-              <ArrowRight size={16} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
             </div>
           ))
         ) : activeTab === "my_listings" ? (
           (filteredItems as OpenListing[]).map(e => (
             <div
               key={e.id}
-              className="glass-card"
-              style={{ padding: "20px", display: "flex", alignItems: "center", gap: "16px", border: "1px solid var(--border-color)" }}
+              className="glass-card board-item-card"
             >
               <div style={{
                 width: "42px", height: "42px", borderRadius: "12px", flexShrink: 0,
@@ -504,7 +505,7 @@ export default function EscrowBoardPage() {
                 <UserCheck size={18} />
               </div>
 
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="board-item-body" style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
                   <span style={{
                     fontSize: "0.62rem", fontWeight: 800, padding: "2px 6px", borderRadius: "999px",
@@ -534,14 +535,14 @@ export default function EscrowBoardPage() {
                 )}
               </div>
 
-              <div style={{ textAlign: "right", flexShrink: 0, display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-end" }}>
+              <div className="board-item-actions">
                 <div>
                   <div style={{ fontWeight: 800, fontSize: "1.05rem", color: "#10b981" }}>
                     {parseFloat(e.budget.toString()).toFixed(2)} USDC
                   </div>
                   <div style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>Your Budget</div>
                 </div>
-                <div style={{ display: "flex", gap: "6px" }}>
+                <div className="board-actions-btn-group" style={{ display: "flex", gap: "6px" }}>
                   <button
                     onClick={() => openEditModal(e)}
                     className="btn-secondary"
@@ -564,8 +565,7 @@ export default function EscrowBoardPage() {
           (filteredItems as OpenListing[]).map(e => (
             <div
               key={e.id}
-              className="glass-card"
-              style={{ padding: "20px", display: "flex", alignItems: "center", gap: "16px", border: "1px solid var(--border-color)" }}
+              className="glass-card board-item-card"
             >
               <div style={{
                 width: "42px", height: "42px", borderRadius: "12px", flexShrink: 0,
@@ -581,7 +581,7 @@ export default function EscrowBoardPage() {
                 <Briefcase size={18} />
               </div>
 
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="board-item-body" style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
                   <span style={{
                     fontSize: "0.62rem", fontWeight: 800, padding: "2px 6px", borderRadius: "999px",
@@ -614,7 +614,7 @@ export default function EscrowBoardPage() {
                 </div>
               </div>
 
-              <div style={{ textAlign: "right", flexShrink: 0, display: "flex", flexDirection: "column", gap: "6px", alignItems: "flex-end" }}>
+              <div className="board-item-actions">
                 <div>
                   <div style={{ fontWeight: 800, fontSize: "1.05rem", color: "#10b981" }}>
                     {parseFloat(e.budget.toString()).toFixed(2)} USDC

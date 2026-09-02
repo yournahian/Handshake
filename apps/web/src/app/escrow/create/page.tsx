@@ -492,8 +492,8 @@ function CreateEscrowContent() {
   };
 
   return (
-    <div style={{ maxWidth: "600px", margin: "0 auto", padding: "20px 16px" }}>
-      <div className="glass-card responsive-card-padding" style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
+    <div style={{ maxWidth: "600px", margin: "0 auto" }}>
+      <div className="glass-card responsive-card-padding create-escrow-card" style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
         
         {/* Header */}
         <div className="create-header">

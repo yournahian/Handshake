@@ -1361,10 +1361,10 @@ export default function EscrowDetail() {
 
   return (
     <div style={{ maxWidth: "800px", margin: "0 auto", padding: "20px 0" }}>
-      <div className="glass-card" style={{ padding: "40px", display: "flex", flexDirection: "column", gap: "32px" }}>
+      <div className="glass-card escrow-detail-card" style={{ display: "flex", flexDirection: "column" }}>
         
         {/* Header Block */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border-color)", paddingBottom: "24px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border-color)", paddingBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
           <div>
             <span style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontFamily: "Space Grotesk" }}>JOB ESCROW ID: #{id}</span>
             <h1 style={{ fontSize: "1.8rem", fontWeight: 700, marginTop: "4px" }}>{description}</h1>
@@ -1392,7 +1392,7 @@ export default function EscrowDetail() {
         </div>
 
         {/* Roles Dashboard */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+        <div className="escrow-roles-grid" style={{ display: "grid", gap: "16px" }}>
           <div style={{ background: "rgba(255, 255, 255, 0.02)", border: "1px solid var(--border-color)", borderRadius: "12px", padding: "16px" }}>
             <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>Client / Buyer</span>
             <div style={{ fontFamily: "Space Grotesk", fontSize: "0.95rem", marginTop: "4px", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -1858,11 +1858,11 @@ export default function EscrowDetail() {
               )}
             </div>
           ) : (status === 1 || status === 2) && isClient && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+            <div className="escrow-action-grid">
               <button onClick={handleComplete} className="btn-primary" disabled={isReleasing} style={{ justifyContent: "center" }}>
                 {isReleasing ? "Releasing Payout..." : "Approve & Release Payment"}
               </button>
-              <button onClick={handleDispute} className="btn-secondary" style={{ borderColor: "var(--danger)", color: "var(--danger)" }}>
+              <button onClick={handleDispute} className="btn-secondary" style={{ borderColor: "var(--danger)", color: "var(--danger)", justifyContent: "center" }}>
                 File Dispute
               </button>
             </div>
@@ -1902,10 +1902,10 @@ export default function EscrowDetail() {
               {isEvaluator && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "20px" }}>
                   <span style={{ fontSize: "0.85rem", color: "var(--text-primary)", fontWeight: 500 }}>Arbitrator Verdict Options:</span>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
-                    <button onClick={() => handleResolveDispute(0)} className="btn-secondary" style={{ color: "var(--danger)" }}>Refund Buyer</button>
-                    <button onClick={() => handleResolveDispute(1)} className="btn-secondary" style={{ color: "var(--success)" }}>Pay Seller</button>
-                    <button onClick={() => handleResolveDispute(2)} className="btn-secondary">50/50 Split</button>
+                  <div className="arbitrator-buttons-grid">
+                    <button onClick={() => handleResolveDispute(0)} className="btn-secondary" style={{ color: "var(--danger)", justifyContent: "center" }}>Refund Buyer</button>
+                    <button onClick={() => handleResolveDispute(1)} className="btn-secondary" style={{ color: "var(--success)", justifyContent: "center" }}>Pay Seller</button>
+                    <button onClick={() => handleResolveDispute(2)} className="btn-secondary" style={{ justifyContent: "center" }}>50/50 Split</button>
                   </div>
                 </div>
               )}
