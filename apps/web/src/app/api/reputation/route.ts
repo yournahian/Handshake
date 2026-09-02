@@ -6,6 +6,8 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 );
 
+export const dynamic = "force-dynamic";
+
 // GET /api/reputation?address=0x...
 export async function GET(req: NextRequest) {
   try {

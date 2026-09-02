@@ -228,8 +228,8 @@ export default function TreasuryLauncher() {
       let deployedAddress = "";
       const TREASURY_DEPLOYED_TOPIC = "0xbd2160b42ab1d57c5d6ae2bcf609970a551df554f5ac20bacac4e80143c33f45";
 
-      for (const log of receipt.logs || []) {
-        if (log.topics && log.topics.length >= 2) {
+      for (const log of (receipt.logs as any[]) || []) {
+        if (log?.topics && log.topics.length >= 2 && log.topics[1]) {
           const topic0 = log.topics[0]?.toLowerCase();
           if (
             topic0 === TREASURY_DEPLOYED_TOPIC ||
@@ -257,7 +257,7 @@ export default function TreasuryLauncher() {
 
             if (logs && logs.length > 0) {
               const matchedLogs = logs.filter((log: any) => {
-                if (!log.topics || log.topics.length < 2) return false;
+                if (!log?.topics || log.topics.length < 2) return false;
                 const topic0 = log.topics[0]?.toLowerCase();
                 if (topic0 !== TREASURY_DEPLOYED_TOPIC) return false;
                 if (!address || log.topics.length < 3) return true;
@@ -266,9 +266,11 @@ export default function TreasuryLauncher() {
               });
 
               if (matchedLogs.length > 0) {
-                const latestLog = matchedLogs[matchedLogs.length - 1];
-                deployedAddress = ("0x" + latestLog.topics[1].slice(-40)) as `0x${string}`;
-                break;
+                const latestLog: any = matchedLogs[matchedLogs.length - 1];
+                if (latestLog?.topics?.[1]) {
+                  deployedAddress = ("0x" + latestLog.topics[1].slice(-40)) as `0x${string}`;
+                  break;
+                }
               }
             }
           } catch (eventErr) {

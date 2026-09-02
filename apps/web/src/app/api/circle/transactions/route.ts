@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 const CIRCLE_API_KEY  = process.env.CIRCLE_API_KEY?.trim() || "";
 const CIRCLE_API_BASE = "https://api.circle.com/v1/w3s";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   try {
     const walletId   = req.nextUrl.searchParams.get("walletId");
