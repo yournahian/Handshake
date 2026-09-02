@@ -70,6 +70,14 @@ app.use((req, res, next) => {
   next();
 });
 
+// Root & Health check endpoints for cloud hosts (Render, Koyeb, etc.)
+app.get("/", (req, res) => {
+  res.send("Handshake Telegram AI Bot is running! 🚀");
+});
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", timestamp: Date.now() });
+});
+
 // Helper to update submission status in Supabase Database
 async function updateDbStatus(jobId: number, status: string, result: string) {
   try {
