@@ -64,10 +64,10 @@ export async function GET(req: NextRequest) {
     const { count: totalReviews } = await supabaseAdmin.from("reviews").select("*", { count: "exact", head: true });
 
     return NextResponse.json({
-      platform: "ArcHandshake",
+      platform: "Handshake",
       network: "Arc Testnet",
       stats: { totalUsers, totalReviews },
-      docs: "https://github.com/yournahian/ArcHandshake",
+      docs: "https://github.com/yournahian/Handshake",
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

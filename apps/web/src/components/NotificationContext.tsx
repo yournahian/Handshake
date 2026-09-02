@@ -93,7 +93,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           setNotifications((prev) => [payload.new as Notification, ...prev]);
           // Browser notification (if permission granted)
           if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
-            new Notification("ArcHandshake", {
+            new Notification("Handshake", {
               body: (payload.new as Notification).message,
               icon: "/favicon.ico",
             });

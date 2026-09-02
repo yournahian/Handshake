@@ -54,8 +54,8 @@ async function callOpenAICompatible(
     "Authorization": `Bearer ${apiKey}`
   };
   if (baseUrl.includes("openrouter")) {
-    headers["HTTP-Referer"] = "https://archandshake.com";
-    headers["X-Title"] = "ArchHandshake Arbitrator";
+    headers["HTTP-Referer"] = "https://handshake.com";
+    headers["X-Title"] = "Handshake Arbitrator";
   }
 
   const messages: any[] = [];
@@ -279,13 +279,26 @@ function extractDescription(text: string): string {
   const toMatch = text.match(/(?:buy|pay)\s+(?:from|to\s+)?(?:@\w+|0x[a-f0-9]+)?\s*(.+)$/i);
   if (toMatch) return toMatch[1].trim();
 
-  return "ArcHandshake Deal";
+  return "Handshake Deal";
 }
 
 /**
  * Downloads a file from a URL and returns it as a base64-encoded string with its MIME type.
  */
 async function fetchFileAsBase64(fileUrl: string): Promise<{ base64: string; mimeType: string } | null> {
+  if (!fileUrl) return null;
+  if (fileUrl.startsWith("data:")) {
+    try {
+      const parts = fileUrl.split(",");
+      const mimeMatch = parts[0].match(/:(.*?);/);
+      const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg";
+      const base64 = parts[1] || "";
+      return { base64, mimeType };
+    } catch (e) {
+      return null;
+    }
+  }
+
   return new Promise((resolve) => {
     const protocol = fileUrl.startsWith("https") ? https : http;
     protocol.get(fileUrl, (res) => {

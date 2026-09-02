@@ -48,6 +48,43 @@ export const walletClient = createWalletClient({
 
 // Simplified ABIs for internal use without needing hardhat file structure
 export const escrowAbi = [
+  // Events
+  {
+    type: "event",
+    name: "JobCreated",
+    inputs: [
+      { name: "jobId",    type: "uint256", indexed: true },
+      { name: "client",   type: "address", indexed: true },
+      { name: "provider", type: "address", indexed: true },
+      { name: "evaluator",type: "address", indexed: false },
+      { name: "expiredAt",type: "uint256", indexed: false },
+      { name: "hook",     type: "address", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "Funded",
+    inputs: [
+      { name: "jobId",  type: "uint256", indexed: true },
+      { name: "amount", type: "uint256", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "Completed",
+    inputs: [
+      { name: "jobId",  type: "uint256", indexed: true },
+      { name: "reason", type: "bytes32", indexed: false },
+    ],
+  },
+  // Functions
+  {
+    type: "function",
+    name: "nextJobId",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
   {
     type: "function",
     name: "createJob",
@@ -63,12 +100,22 @@ export const escrowAbi = [
   },
   {
     type: "function",
+    name: "setQrConfirmation",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "jobId", type: "uint256" },
+      { name: "qrHash", type: "bytes32" }
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
     name: "setBudget",
     stateMutability: "nonpayable",
     inputs: [
       { name: "jobId", type: "uint256" },
       { name: "amount", type: "uint256" },
-      { name: "optParams", type: "bytes" },
+      { name: "optParams", type: "bytes" }
     ],
     outputs: [],
   },
@@ -78,7 +125,7 @@ export const escrowAbi = [
     stateMutability: "nonpayable",
     inputs: [
       { name: "jobId", type: "uint256" },
-      { name: "optParams", type: "bytes" },
+      { name: "optParams", type: "bytes" }
     ],
     outputs: [],
   },
@@ -89,7 +136,7 @@ export const escrowAbi = [
     inputs: [
       { name: "jobId", type: "uint256" },
       { name: "deliverable", type: "bytes32" },
-      { name: "optParams", type: "bytes" },
+      { name: "optParams", type: "bytes" }
     ],
     outputs: [],
   },
@@ -100,7 +147,7 @@ export const escrowAbi = [
     inputs: [
       { name: "jobId", type: "uint256" },
       { name: "reason", type: "bytes32" },
-      { name: "optParams", type: "bytes" },
+      { name: "optParams", type: "bytes" }
     ],
     outputs: [],
   },
@@ -110,8 +157,52 @@ export const escrowAbi = [
     stateMutability: "nonpayable",
     inputs: [
       { name: "jobId", type: "uint256" },
-      { name: "reason", type: "bytes32" },
+      { name: "reason", type: "bytes32" }
     ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "qrRelease",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "jobId", type: "uint256" },
+      { name: "code", type: "string" }
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "dispute",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "jobId", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "resolveDispute",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "jobId", type: "uint256" },
+      { name: "resolution", type: "uint8" }
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "resolveDisputeCustom",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "jobId", type: "uint256" },
+      { name: "clientShare", type: "uint256" }
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "refundExpired",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "jobId", type: "uint256" }],
     outputs: [],
   },
   {
@@ -128,29 +219,28 @@ export const escrowAbi = [
       { name: "budget", type: "uint256" },
       { name: "expiredAt", type: "uint256" },
       { name: "status", type: "uint8" },
+      { name: "hook", type: "address" }
+    ],
+  },
+  {
+    type: "function",
+    name: "jobs",
+    stateMutability: "view",
+    inputs: [{ name: "jobId", type: "uint256" }],
+    outputs: [
+      { name: "id", type: "uint256" },
+      { name: "client", type: "address" },
+      { name: "provider", type: "address" },
+      { name: "evaluator", type: "address" },
+      { name: "description", type: "string" },
+      { name: "budget", type: "uint256" },
+      { name: "expiredAt", type: "uint256" },
+      { name: "status", type: "uint8" },
       { name: "hook", type: "address" },
+      { name: "deliverableHash", type: "bytes32" },
+      { name: "qrConfirmationHash", type: "bytes32" }
     ],
-  },
-  {
-    type: "function",
-    name: "resolveDispute",
-    stateMutability: "nonpayable",
-    inputs: [
-      { name: "jobId", type: "uint256" },
-      { name: "resolution", type: "uint8" },
-    ],
-    outputs: [],
-  },
-  {
-    type: "function",
-    name: "resolveDisputeCustom",
-    stateMutability: "nonpayable",
-    inputs: [
-      { name: "jobId", type: "uint256" },
-      { name: "clientShare", type: "uint256" },
-    ],
-    outputs: [],
-  },
+  }
 ] as const;
 
 export const treasuryAbi = [
@@ -193,8 +283,7 @@ export async function getTreasuryStats(customAddress?: string) {
 
     const balance        = (Number(balanceRaw as bigint) / 1e6).toFixed(2);
     const members        = Number(membersCountRaw as bigint);
-    const nextId         = Number(nextIdRaw as bigint);
-    const totalProposals = nextId - 1;
+    const totalProposals = Number(nextIdRaw as bigint);
 
     // Count active proposals (not executed, not rejected, deadline not passed)
     let active = 0;
@@ -229,7 +318,7 @@ export async function getJobDetails(jobId: bigint) {
       address: DEPLOYED_ESCROW_ADDRESS,
       abi: escrowAbi,
       //@ts-ignore
-      functionName: "getJob",
+      functionName: "jobs",
       args: [jobId],
     });
     return data;

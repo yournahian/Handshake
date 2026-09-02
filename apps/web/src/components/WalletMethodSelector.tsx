@@ -58,7 +58,7 @@ export function WalletMethodSelector({ onSelect }: Props) {
             Choose Your Wallet
           </h2>
           <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--text-muted, #888)", lineHeight: 1.5 }}>
-            How would you like to manage USDC on ArcHandshake?
+            How would you like to manage USDC on Handshake?
           </p>
         </div>
 

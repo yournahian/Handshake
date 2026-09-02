@@ -123,7 +123,7 @@ export function CircleWalletSetup() {
                 Create your secure wallet
               </h2>
               <p style={{ margin: 0, fontSize: "0.9rem", color: "var(--text-muted, #888)", lineHeight: 1.6 }}>
-                ArcHandshake creates a secure, non-custodial wallet for you automatically — 
+                Handshake creates a secure, non-custodial wallet for you automatically — 
                 no seed phrases needed. You'll set a <strong>6-digit PIN</strong> and 
                 2 security questions that only you know.
               </p>

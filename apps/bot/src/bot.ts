@@ -37,7 +37,7 @@ const bot = new TelegramBot(token, { polling: true });
 const app = express();
 app.use(express.json());
 
-console.log("ArcHandshake Telegram Bot is running...");
+console.log("Handshake Telegram Bot is running...");
 
 // Helper to choose between Telegram WebApp iframe (requires HTTPS) and standard URL redirect (for local HTTP testing)
 function getButtonMarkup(buttonText: string, path: string) {
@@ -117,9 +117,7 @@ async function syncOfflineState() {
         const aiLabel = result.usedAI ? "🤖 Gemini AI" : "📏 Heuristic";
 
         if (result.isApproved) {
-          const reasonHash = keccak256(toHex("AI_APPROVED"));
-          const txHash = await releaseEscrow(jobId, reasonHash);
-          await updateDbStatus(sub.job_id, "Approved", `${aiLabel} Verification passed! ${result.reason} Tx Hash: ${txHash}`);
+          await updateDbStatus(sub.job_id, "Approved", `${aiLabel} Verification passed! ${result.reason}. Waiting for buyer payout release.`);
         } else {
           const reasonHash = keccak256(toHex("AI_REJECTED"));
           await updateDbStatus(sub.job_id, "Rejected", `${aiLabel} Verification failed! ${result.reason}`);
@@ -157,17 +155,15 @@ function listenToSupabaseRealtime() {
 
           const onChainStatus = job[7];
 
-          // Run AI check if newly inserted from web
-          if (newRow.status === "Pending Verification" && onChainStatus === 1) {
+          // Run AI check if newly inserted from web or Telegram
+          if (newRow.status === "Pending Verification" && (onChainStatus === 1 || onChainStatus === 2)) {
             console.log(`⚡ Realtime Event: Running Gemini AI verification for Job #${newRow.job_id}...`);
             const jobDescription = job[4];
             const result = await verifyDeliverable(newRow.file_url || "", newRow.file_name || "deliverable", jobDescription);
             const aiLabel = result.usedAI ? "🤖 Gemini AI" : "📏 Heuristic";
 
             if (result.isApproved) {
-              const reasonHash = keccak256(toHex("AI_APPROVED"));
-              const txHash = await releaseEscrow(jobId, reasonHash);
-              await updateDbStatus(newRow.job_id, "Approved", `${aiLabel} Verification passed! ${result.reason} Tx Hash: ${txHash}`);
+              await updateDbStatus(newRow.job_id, "Approved", `${aiLabel} Verification passed! ${result.reason}. Waiting for buyer payout release.`);
             } else {
               const reasonHash = keccak256(toHex("AI_REJECTED"));
               await updateDbStatus(newRow.job_id, "Rejected", `${aiLabel} Verification failed! ${result.reason}`);
@@ -175,7 +171,7 @@ function listenToSupabaseRealtime() {
             }
           }
 
-          // Process payout if buyer authorized
+          // Process payout ONLY if buyer authorized
           if (newRow.buyer_authorized && (onChainStatus === 1 || onChainStatus === 2)) {
             console.log(`⚡ Realtime Event: Processing buyer manual release for Job #${newRow.job_id}...`);
             const reasonHash = keccak256(toHex("BUYER_MANUAL_APPROVED"));
@@ -188,17 +184,7 @@ function listenToSupabaseRealtime() {
             try {
               const providerAddr = job[2] as string;
               console.log(`📣 New escrow Job #${newRow.job_id} created. Notifying seller (${providerAddr})...`);
-              // We can't map wallet address → Telegram chat ID without a registry,
-              // so we broadcast to any group chats that are subscribed.
-              // For direct notification, the seller should use /status command.
-              const notifyText =
-                `🔔 *New Escrow Assigned to You!* (Job #${newRow.job_id})\n` +
-                `A buyer has created an escrow that requires your budget confirmation.\n` +
-                `📋 Spec: _${job[4]}_\n\n` +
-                `👉 Open the portal to set your price and begin work:`;
               const webAppUrl = process.env.NEXT_PUBLIC_WEB_APP_URL || "http://localhost:3000";
-              // Attempt direct message using seller's chat ID stored in metadata (future extension)
-              // For now, log the notification for debugging
               console.log(`[Seller Notification] Job #${newRow.job_id} → ${webAppUrl}/escrow/${newRow.job_id}`);
             } catch (notifyErr) {
               console.error("Failed to send seller notification:", notifyErr);
@@ -213,6 +199,46 @@ function listenToSupabaseRealtime() {
       }
     )
     .subscribe();
+
+  // Periodic fallback check for pending submissions
+  async function checkPendingSubmissions() {
+    try {
+      const { data: pending } = await supabase
+        .from("escrow_submissions")
+        .select("*")
+        .eq("status", "Pending Verification")
+        .limit(10);
+
+      if (pending && pending.length > 0) {
+        for (const row of pending) {
+          const jobId = BigInt(row.job_id);
+          const job = await getJobDetails(jobId);
+          if (!job) continue;
+          const onChainStatus = job[7];
+          if (onChainStatus === 1 || onChainStatus === 2) {
+            console.log(`🔍 Polling Fallback: Processing verification for Job #${row.job_id}...`);
+            const jobDescription = job[4];
+            const result = await verifyDeliverable(row.file_url || "", row.file_name || "deliverable", jobDescription);
+            const aiLabel = result.usedAI ? "🤖 Gemini AI" : "📏 Heuristic";
+
+            if (result.isApproved) {
+              await updateDbStatus(row.job_id, "Approved", `${aiLabel} Verification passed! ${result.reason}. Waiting for buyer payout release.`);
+            } else {
+              const reasonHash = keccak256(toHex("AI_REJECTED"));
+              await updateDbStatus(row.job_id, "Rejected", `${aiLabel} Verification failed! ${result.reason}`);
+              await rejectSubmission(jobId, reasonHash);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error in checkPendingSubmissions:", err);
+    }
+  }
+
+  // Run immediately and every 10 seconds
+  checkPendingSubmissions();
+  setInterval(checkPendingSubmissions, 10000);
 }
 
 // GET submission details for a job
@@ -301,22 +327,41 @@ app.post("/api/escrow/release", async (req: any, res: any) => {
   }
 
   try {
-    const job = await getJobDetails(BigInt(jobId));
+    const job: any = await getJobDetails(BigInt(jobId));
+    console.log(`[API Escrow Release] Job #${jobId} details from chain:`, job);
     if (!job) {
       return res.status(404).json({ error: "Job not found onchain" });
     }
 
-    const clientOnChain = job[1];
-    if (clientOnChain.toLowerCase() !== buyerAddress.toLowerCase()) {
+    const clientOnChain = String(job.client || job[1] || "").toLowerCase();
+    const isBuyer = buyerAddress && clientOnChain === String(buyerAddress).toLowerCase().trim();
+
+    // Check if the submission was already approved by AI in Supabase
+    let isAIApproved = false;
+    try {
+      const { data: sub } = await supabase
+        .from("escrow_submissions")
+        .select("status")
+        .eq("job_id", Number(jobId))
+        .maybeSingle();
+      if (sub && sub.status === "Approved") {
+        isAIApproved = true;
+      }
+    } catch (e) {}
+
+    if (!isBuyer && !isAIApproved) {
       return res.status(403).json({ error: "Only the client/buyer of this escrow can authorize payment release." });
     }
 
-    const status = job[7];
+    const rawStatus = job.status !== undefined ? job.status : job[7];
+    const status = Number(rawStatus);
+    console.log(`[API Escrow Release] Parsed on-chain status: ${status} (raw: ${rawStatus})`);
+
     if (status !== 1 && status !== 2) {
-      return res.status(400).json({ error: `Cannot release escrow with current job status: ${status}` });
+      return res.status(400).json({ error: `Cannot release escrow with current job status: ${status}. Job must be Funded (1) or Submitted (2).` });
     }
 
-    const reasonHash = keccak256(toHex("BUYER_MANUAL_APPROVED"));
+    const reasonHash = keccak256(toHex(isAIApproved ? "AI_APPROVED" : "BUYER_MANUAL_APPROVED"));
     const txHash = await releaseEscrow(BigInt(jobId), reasonHash);
 
     // Set buyer_authorized to true and save release transaction hash to Supabase
@@ -423,7 +468,7 @@ app.post("/api/webhook/escrow-updated", async (req: any, res: any) => {
 bot.onText(/\/help|\/start/, (msg) => {
   const chatId = msg.chat.id;
   const helpText = `
-🤝 *Welcome to ArcHandshake!*
+🤝 *Welcome to Handshake!*
 I am your autonomous escrow and group finance agent on the Arc blockchain.
 
 *Available Actions:*
@@ -446,7 +491,7 @@ I am your autonomous escrow and group finance agent on the Arc blockchain.
 // Launch Escrow portal
 bot.onText(/\/escrow/, (msg) => {
   const chatId = msg.chat.id;
-  bot.sendMessage(chatId, "Click the button below to open the ArcHandshake Escrow portal:", getButtonMarkup("🚀 Open Escrow Portal", "/escrow"));
+  bot.sendMessage(chatId, "Click the button below to open the Handshake Escrow portal:", getButtonMarkup("🚀 Open Escrow Portal", "/escrow"));
 });
 
 // Link a custom Group Treasury pool to a group chat
@@ -519,7 +564,7 @@ bot.onText(/\/pool/, async (msg) => {
 
     const poolLabel = linkedAddress ? `Group Pool (\`${linkedAddress.slice(0,6)}…${linkedAddress.slice(-4)}\`)` : "Group Pool";
     const reply =
-      `🏦 *ArcHandshake ${poolLabel}*\n\n` +
+      `🏦 *Handshake ${poolLabel}*\n\n` +
       `💰 Pool Balance: *${stats.balance} USDC*\n` +
       `👥 Members: *${stats.members}*\n` +
       `🗳 Active Votes: *${stats.active}* proposal${stats.active !== 1 ? "s" : ""} open\n` +
@@ -535,7 +580,7 @@ bot.onText(/\/pool/, async (msg) => {
       }
     });
   } catch (err) {
-    bot.sendMessage(chatId, "Click below to open the ArcHandshake Group Pool:", getButtonMarkup("🏦 Open Group Pool", portalPath));
+    bot.sendMessage(chatId, "Click below to open the Handshake Group Pool:", getButtonMarkup("🏦 Open Group Pool", portalPath));
   }
 });
 
@@ -572,7 +617,7 @@ bot.on("message", async (msg) => {
       reply += `👤 *Buyer*: @${msg.from?.username || "buyer"}\n`;
       reply += `👤 *Seller*: ${seller}\n`;
       reply += `💰 *Budget*: ${amount || "Not specified"} USDC\n`;
-      reply += `📋 *Description*: \"${taskDescription || "ArcHandshake Contract"}\"\n\n`;
+      reply += `📋 *Description*: \"${taskDescription || "Handshake Contract"}\"\n\n`;
       reply += `Ready to lock this deal? Click below to finalize specs, approve USDC, and deploy it to the Arc Testnet.`;
 
       // Build target WebApp link passing details in query params
@@ -604,7 +649,7 @@ bot.on("message", async (msg) => {
           let sellerNotice = `🔔 *New Escrow Proposed to You!*\n\n`;
           sellerNotice += `👤 *Buyer*: @${msg.from?.username || "buyer"}\n`;
           sellerNotice += `💰 *Budget*: ${amount || "Not specified"} USDC\n`;
-          sellerNotice += `📋 *Description*: \"${taskDescription || "ArcHandshake Contract"}\"\n\n`;
+          sellerNotice += `📋 *Description*: \"${taskDescription || "Handshake Contract"}\"\n\n`;
           sellerNotice += `Click below to view the specifications and accept the deal:`;
 
           await bot.sendMessage(sellerChatId, sellerNotice, {
@@ -623,7 +668,7 @@ bot.on("message", async (msg) => {
       } else {
         await bot.sendMessage(
           chatId,
-          `ℹ️ _Note: I couldn't direct message the seller @${sellerUsername}. Ask them to start the bot (@ArcHandshakeBot) to receive direct deal notifications._`,
+          `ℹ️ _Note: I couldn't direct message the seller @${sellerUsername}. Ask them to start the bot to receive direct deal notifications._`,
           { parse_mode: "Markdown" }
         );
       }

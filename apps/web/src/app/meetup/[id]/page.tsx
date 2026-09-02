@@ -740,7 +740,7 @@ export default function MeetupDetail() {
             </div>
             <button
               type="button"
-              onClick={() => window.open("https://t.me/ArcHandshakeBot", "_blank")}
+              onClick={() => window.open("https://t.me/HandshakeBot", "_blank")}
               className="btn-secondary"
               style={{
                 padding: "8px 16px",

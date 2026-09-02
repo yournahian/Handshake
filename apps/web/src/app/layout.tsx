@@ -9,8 +9,8 @@ import { NotificationProvider } from "@/components/NotificationContext";
 import HoverFooter from "@/components/ui/hover-footer";
 
 export const metadata = {
-  title: "ArcHandshake - Autonomous Escrow & Group Accountant",
-  description: "Secure digital/physical escrows and group finance pools on Arc L1 Blockchain",
+  title: "Handshake - Autonomous Escrow & Group Accountant",
+  description: "Secure digital/physical escrows and group finance pools with instant settlement",
   icons: {
     icon: "/faicon.png",
     shortcut: "/faicon.png",

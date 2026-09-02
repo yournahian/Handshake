@@ -342,29 +342,28 @@ export function CircleWalletProvider({ children }: { children: React.ReactNode }
 
     const sdkResult = await executeChallenge(data.challengeId);
 
-    // Poll for the on-chain transaction hash from Circle status
-    if (data.txId) {
-      for (let i = 0; i < 40; i++) {
-        try {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          const txRes = await fetch(`/api/circle/transactions/${data.txId}?userToken=${encodeURIComponent(userToken)}`);
-          if (txRes.ok) {
-            const txData = await txRes.json();
-            const txHash = txData?.transaction?.txHash;
-            if (txHash && txHash !== "0x" && txHash.length > 10) {
-              return txHash as string;
-            }
-          }
-        } catch (e) {
-          console.warn("Error polling transaction hash:", e);
-        }
-      }
+    // 1. Check the SDK result FIRST — it often returns the tx hash immediately
+    //    from the Circle PIN challenge callback, no polling needed.
+    const sdkHash: string =
+      sdkResult?.result?.transactionHash ??
+      sdkResult?.transactionHash ??
+      sdkResult?.data?.transactionHash ??
+      "";
+    if (sdkHash && sdkHash !== "0x" && sdkHash.length > 10) {
+      console.log("[executeContractCall] Got tx hash from SDK challenge result:", sdkHash);
+      return sdkHash;
     }
 
-    // Try polling the transactions history to find the transaction matching this challengeId
-    for (let i = 0; i < 30; i++) {
+    // 2. If the SDK didn't return a hash, wait a few seconds for Circle to index,
+    //    then poll the wallet transaction list looking for our challengeId.
+    //    Circle often takes 8-15s, so give it a 3s head-start then poll moderately.
+    const MAX_POLL = 20;        // ~23s total with 1s intervals (~3s delay + 20 attempts)
+    const POLL_DELAY = 1000;
+
+    await new Promise((r) => setTimeout(r, 3000)); // initial buffer for Circle indexing
+
+    for (let i = 0; i < MAX_POLL; i++) {
       try {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
         const listRes = await fetch(`/api/circle/transactions?walletId=${wallet.id}&userToken=${encodeURIComponent(userToken)}`);
         if (listRes.ok) {
           const listData = await listRes.json();
@@ -373,24 +372,19 @@ export function CircleWalletProvider({ children }: { children: React.ReactNode }
           if (matchingTx) {
             const txHash = matchingTx.txHash;
             if (txHash && txHash !== "0x" && txHash.length > 10) {
-              console.log("[executeContractCall] Found real transaction hash from history:", txHash);
+              console.log("[executeContractCall] Found tx hash from history:", txHash);
               return txHash as string;
             }
           }
         }
       } catch (e) {
-        console.warn("Error polling transactions history for challengeId:", e);
+        console.warn("Error polling transactions history:", e);
       }
+      await new Promise((r) => setTimeout(r, POLL_DELAY));
     }
 
-    // Fallback to checking challenge payload result
-    const fallbackHash: string =
-      sdkResult?.result?.transactionHash ??
-      sdkResult?.transactionHash ??
-      sdkResult?.data?.transactionHash ??
-      "";
-
-    return fallbackHash;
+    console.warn("[executeContractCall] Could not obtain tx hash after polling — returning fallback");
+    return sdkHash;
   }, [wallet, userToken, executeChallenge]);
 
   // ── Transfer USDC out to an external wallet ──────────────────────────────

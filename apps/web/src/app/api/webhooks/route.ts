@@ -80,8 +80,8 @@ async function fireWebhook(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-ArcHandshake-Signature": `sha256=${sig}`,
-        "X-ArcHandshake-Event": eventType,
+        "X-Handshake-Signature": `sha256=${sig}`,
+        "X-Handshake-Event": eventType,
       },
       body,
     });

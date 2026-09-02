@@ -1154,7 +1154,7 @@ export default function ProfilePage() {
                 <h2 style={{ fontSize: "1.2rem", fontWeight: 700, margin: 0 }}>Referral Rewards</h2>
               </div>
               <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: 1.4 }}>
-                Invite your friends to ArcHandshake. You earn <b style={{ color: "#10b981" }}>0.50 USDC</b> when they complete their first digital or physical escrow.
+                Invite your friends to Handshake. You earn <b style={{ color: "#10b981" }}>0.50 USDC</b> when they complete their first digital or physical escrow.
               </p>
               
               <div style={{

@@ -46,6 +46,32 @@ export default function TreasuryLauncher() {
   const [isDeploying, setIsDeploying] = useState(false);
   const [txPendingMessage, setTxPendingMessage] = useState<string | null>(null);
 
+  // Custom Toast state
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const toastTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const alert = React.useCallback((message: string) => {
+    const lower = message.toLowerCase();
+    const isError = lower.includes("failed") || 
+                    lower.includes("error") || 
+                    lower.includes("offline") || 
+                    lower.includes("invalid") || 
+                    lower.includes("required") ||
+                    lower.includes("please connect") ||
+                    lower.includes("cannot be empty");
+    
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+
+    setToast({ message: message.replace(/\n/g, " "), type: isError ? "error" : "success" });
+    
+    toastTimeoutRef.current = setTimeout(() => {
+      setToast(null);
+      toastTimeoutRef.current = null;
+    }, 4500);
+  }, []);
+
   // Load saved pools (hybrid: Supabase + localStorage fallback)
   useEffect(() => {
     if (!mounted) return;
@@ -200,72 +226,54 @@ export default function TreasuryLauncher() {
 
       // Decode transaction logs to find the TreasuryDeployed event
       let deployedAddress = "";
-      for (const log of receipt.logs) {
-        try {
-          const decoded = decodeEventLog({
-            abi: factoryAbi,
-            eventName: "TreasuryDeployed",
-            data: log.data,
-            topics: log.topics,
-          });
-          deployedAddress = decoded.args.treasuryAddress;
-          break;
-        } catch (e) {
-          // ignore logs from other events or contracts
+      const TREASURY_DEPLOYED_TOPIC = "0xbd2160b42ab1d57c5d6ae2bcf609970a551df554f5ac20bacac4e80143c33f45";
+
+      for (const log of receipt.logs || []) {
+        if (log.topics && log.topics.length >= 2) {
+          const topic0 = log.topics[0]?.toLowerCase();
+          if (
+            topic0 === TREASURY_DEPLOYED_TOPIC ||
+            log.address?.toLowerCase() === DEPLOYED_FACTORY_ADDRESS.toLowerCase()
+          ) {
+            deployedAddress = ("0x" + log.topics[1].slice(-40)) as `0x${string}`;
+            break;
+          }
         }
       }
 
-      // Fallback: If receipt logs are empty (e.g., Circle SDK returned mock/empty hash or no logs),
-      // search the blockchain for TreasuryDeployed events matching the user's address as admin.
-      // Poll up to 15 times (30 seconds) to wait for Circle to mine the transaction.
-      if (!deployedAddress && address) {
+      // If not in receipt logs (e.g. Circle SDK mock hash or empty logs array), scan factory logs
+      if (!deployedAddress) {
         setTxPendingMessage("Searching blockchain for your new treasury address (waiting for confirmation)…");
-        
-        const eventAbi = {
-          type: "event",
-          name: "TreasuryDeployed",
-          inputs: [
-            { name: "treasuryAddress", type: "address", indexed: true },
-            { name: "adminAddress", type: "address", indexed: true }
-          ]
-        } as const;
 
         for (let attempt = 0; attempt < 15; attempt++) {
           try {
-            // Calculate a safe start block to query to avoid massive RPC block range limits
-            let startBlock = BigInt(0);
-            try {
-              if (receipt && (receipt as any).blockNumber) {
-                startBlock = BigInt((receipt as any).blockNumber) - BigInt(2);
-              } else {
-                const currentBlock = await publicClient.getBlockNumber();
-                startBlock = currentBlock - BigInt(50);
-              }
-              if (startBlock < BigInt(0)) startBlock = BigInt(0);
-            } catch (blockErr) {
-              console.error("Failed to estimate start block:", blockErr);
-            }
+            const currentBlock = await publicClient.getBlockNumber();
+            const startBlock = currentBlock > 100n ? currentBlock - 100n : 0n;
 
             const logs = await publicClient.getLogs({
               address: DEPLOYED_FACTORY_ADDRESS,
-              event: eventAbi,
               fromBlock: startBlock,
             });
 
             if (logs && logs.length > 0) {
-              // Filter logs manually in JS to avoid finicky ABI encoder/decoder matching on custom RPC
-              const filteredLogs = logs.filter(
-                (log: any) => log.args.adminAddress?.toLowerCase() === address.toLowerCase()
-              );
-              if (filteredLogs.length > 0) {
-                deployedAddress = filteredLogs[filteredLogs.length - 1].args.treasuryAddress as string;
+              const matchedLogs = logs.filter((log: any) => {
+                if (!log.topics || log.topics.length < 2) return false;
+                const topic0 = log.topics[0]?.toLowerCase();
+                if (topic0 !== TREASURY_DEPLOYED_TOPIC) return false;
+                if (!address || log.topics.length < 3) return true;
+                const adminInLog = ("0x" + log.topics[2].slice(-40)).toLowerCase();
+                return adminInLog === address.toLowerCase();
+              });
+
+              if (matchedLogs.length > 0) {
+                const latestLog = matchedLogs[matchedLogs.length - 1];
+                deployedAddress = ("0x" + latestLog.topics[1].slice(-40)) as `0x${string}`;
                 break;
               }
             }
           } catch (eventErr) {
             console.error("Failed to query TreasuryDeployed events fallback:", eventErr);
           }
-          // Wait 2 seconds before retrying
           await new Promise((resolve) => setTimeout(resolve, 2000));
         }
       }
@@ -500,6 +508,47 @@ export default function TreasuryLauncher() {
         <AlertCircle size={14} />
         <span>Make sure your wallet is connected to Arc Testnet (Chain ID 5042002).</span>
       </div>
+
+      {/* Toast Notification Banner */}
+      {toast && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "32px",
+            right: "32px",
+            background: toast.type === "error" ? "rgba(239, 68, 68, 0.95)" : "rgba(16, 185, 129, 0.95)",
+            color: "#ffffff",
+            padding: "14px 22px",
+            borderRadius: "12px",
+            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
+            backdropFilter: "blur(12px)",
+            zIndex: 99999,
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            fontWeight: 500,
+            fontSize: "0.92rem",
+            maxWidth: "420px",
+            animation: "slideInToast 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+          }}
+        >
+          <span>{toast.type === "error" ? "⚠️" : "✨"}</span>
+          <span>{toast.message}</span>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes slideInToast {
+          from {
+            opacity: 0;
+            transform: translateY(16px) scale(0.96);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+      `}</style>
 
     </div>
   );

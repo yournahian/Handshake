@@ -14,7 +14,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, ShieldCheck, QrCode, Landmark, Globe } from "lucide-react";
+import { Home, ShieldCheck, QrCode, Landmark, Globe, Handshake } from "lucide-react";
 import { HeaderWallet } from "@/components/HeaderWallet";
 import { NotificationBell } from "@/components/NotificationBell";
 
@@ -31,7 +31,7 @@ export function MobileNav() {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
+    const onScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
@@ -48,8 +48,16 @@ export function MobileNav() {
         className="main-header desktop-header"
         style={{ boxShadow: scrolled ? "0 2px 20px rgba(0,0,0,0.4)" : "none" }}
       >
-        <Link href="/" className="header-logo">
-          <img src="/logo.png" alt="ArcHandshake" style={{ height: "32px", width: "auto", objectFit: "contain" }} />
+        <Link href="/" className="header-logo" style={{ textDecoration: "none" }}>
+          <span style={{
+            fontSize: "1.35rem",
+            fontWeight: 800,
+            letterSpacing: "-0.03em",
+            color: "var(--text-primary)",
+            fontFamily: "Space Grotesk, sans-serif"
+          }}>
+            Handshake
+          </span>
         </Link>
 
         <nav className="main-nav">
@@ -67,8 +75,16 @@ export function MobileNav() {
 
       {/* ── Mobile Top Bar (wallet only) ──────────────────────────────────── */}
       <div className="mobile-top-bar">
-        <Link href="/" className="header-logo" style={{ fontSize: "1.1rem" }}>
-          <img src="/logo.png" alt="ArcHandshake" style={{ height: "28px", width: "auto", objectFit: "contain" }} />
+        <Link href="/" className="header-logo" style={{ textDecoration: "none" }}>
+          <span style={{
+            fontSize: "1.15rem",
+            fontWeight: 800,
+            letterSpacing: "-0.03em",
+            color: "var(--text-primary)",
+            fontFamily: "Space Grotesk, sans-serif"
+          }}>
+            Handshake
+          </span>
         </Link>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <NotificationBell />

@@ -140,7 +140,7 @@ export default function Home() {
               className="max-w-3xl mx-auto space-y-4"
             >
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed font-medium">
-                ArcHandshake provides secure, trustless escrow templates and joint treasury tools for the Arc L1 network. Manage payments with{" "}
+                Handshake provides secure, trustless escrow templates and joint treasury tools. Manage payments with{" "}
                 <span className="text-foreground font-semibold bg-gradient-to-r from-primary/10 to-primary/5 px-2 py-1 rounded-md border border-primary/10">
                   AI verification, QR codes, and group accountant policies
                 </span>.
@@ -313,8 +313,8 @@ export default function Home() {
       <section className="max-w-6xl mx-auto px-4 sm:px-6 w-full">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 py-8 border-y border-border/40 bg-card/10 rounded-xl px-4 sm:px-8 items-center">
           <div className="text-left space-y-1">
-            <span className="text-[10px] text-primary font-mono uppercase tracking-widest font-bold">Live on Public Testnet</span>
-            <h3 className="text-lg font-bold">Arc L1 Settlement Network</h3>
+            <span className="text-[10px] text-primary font-mono uppercase tracking-widest font-bold">Public Settlement</span>
+            <h3 className="text-lg font-bold">Decentralized Network</h3>
           </div>
           <div className="text-left">
             <div className="text-2xl sm:text-3xl font-bold font-mono text-foreground">~0.48s</div>
@@ -335,11 +335,11 @@ export default function Home() {
       <section className="max-w-6xl mx-auto px-4 sm:px-6 w-full flex flex-col gap-8 sm:gap-12 border-t border-border/20 pt-10 sm:pt-16">
         <div className="flex justify-between items-end flex-wrap gap-6">
           <div className="text-left space-y-2">
-            <span className="text-xs text-primary font-mono uppercase tracking-widest font-bold">Built on Arc L1</span>
+            <span className="text-xs text-primary font-mono uppercase tracking-widest font-bold">Autonomous Protocol</span>
             <h2 className="text-xl sm:text-4xl font-extrabold tracking-tight">Real economic activity unleashed</h2>
           </div>
           <p className="text-sm text-muted-foreground max-w-md leading-relaxed">
-            ArcHandshake harnesses custom ERC-8183 templates and instant deterministic settlement finality to support complex business workflows without centralized risk.
+            Handshake harnesses custom ERC-8183 templates and instant deterministic settlement finality to support complex business workflows without centralized risk.
           </p>
         </div>
 
@@ -373,7 +373,7 @@ export default function Home() {
             {
               num: "06",
               title: "Sub-Second Processing",
-              desc: "Leverage Arc's deterministic block times to resolve disputes, update balances, and settle transactions in sub-second speeds."
+              desc: "Leverage deterministic block times to resolve disputes, update balances, and settle transactions in sub-second speeds."
             }
           ].map((item, idx) => (
             <div 

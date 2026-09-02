@@ -135,10 +135,12 @@ function CreateEscrowContent() {
   const [isPollingBudget, setIsPollingBudget] = useState(false);
   const [budgetFound, setBudgetFound] = useState(false);
 
-  // Self-healing timeout for stuck transaction pending states (resets stuck buttons after unhandled wallet errors)
+  // Safety net: reset isTxPending if it stays stuck unreasonably long.
+  // The timeout is generous (120s) — the wallet interaction itself (PIN challenge + on-chain)
+  // can take 10-30s normally, and we don't want to prematurely re-enable the button.
   useEffect(() => {
     if (isTxPending) {
-      const t = setTimeout(() => setIsTxPending(false), 45000);
+      const t = setTimeout(() => setIsTxPending(false), 120000);
       return () => clearTimeout(t);
     }
   }, [isTxPending]);
@@ -146,15 +148,21 @@ function CreateEscrowContent() {
   // Pre-fill parameters from Telegram query params
   useEffect(() => {
     const providerParam = searchParams.get("provider");
+    const buyerParam = searchParams.get("buyer");
+    const roleParam = searchParams.get("role");
     const amountParam = searchParams.get("amount");
     const descriptionParam = searchParams.get("description");
     const typeParam = searchParams.get("type");
     const proposalIdParam = searchParams.get("proposalId");
 
     if (providerParam) setProvider(providerParam);
+    if (buyerParam) setProvider(buyerParam);
+    if (roleParam === "seller") setCreatorRole("seller");
+    if (roleParam === "buyer") setCreatorRole("buyer");
     if (amountParam && amountParam !== "0") setBudget(amountParam);
     if (descriptionParam) setDescription(descriptionParam);
     if (typeParam === "physical") setEscrowType("physical");
+    if (typeParam === "digital" || typeParam === "otc") setEscrowType("digital");
 
     if (proposalIdParam) {
       setProposalId(proposalIdParam);
@@ -260,12 +268,17 @@ function CreateEscrowContent() {
       const expiredAt = BigInt(Math.floor(Date.now() / 1000) + parseInt(hours) * 3600);
       const budgetUSDC = parseUnits(budget, 6);
 
-      // Pre-query the next job ID from the contract to know the exact ID that will be created
-      const onchainJobId = await publicClient.readContract({
-        address: DEPLOYED_ESCROW_ADDRESS,
-        abi: escrowAbi,
-        functionName: "nextJobId",
-      }) as bigint;
+      // Pre-query the next job ID as an optimistic fallback
+      let fallbackJobId: bigint | null = null;
+      try {
+        fallbackJobId = await publicClient.readContract({
+          address: DEPLOYED_ESCROW_ADDRESS,
+          abi: escrowAbi,
+          functionName: "nextJobId",
+        }) as bigint;
+      } catch (e) {
+        console.warn("Could not pre-fetch nextJobId (rate-limit fallback will extract from receipt):", e);
+      }
 
       // Step 2.1: Call createJob onchain
       const txHash = await writeContract("createJob", [
@@ -278,12 +291,34 @@ function CreateEscrowContent() {
 
       console.log("CreateJob Transaction Hash:", txHash);
 
+      let createdJobId: bigint | null = fallbackJobId;
+
       if (txHash && txHash !== "0x" && publicClient) {
         const receipt = await waitForReceipt(publicClient, txHash);
         if (receipt.status !== "success") throw new Error("Create escrow transaction reverted onchain!");
+
+        // Extract exact Job ID directly from JobCreated event in transaction receipt
+        if (receipt.logs && receipt.logs.length > 0) {
+          for (const log of receipt.logs) {
+            try {
+              const decoded = decodeEventLog({
+                abi: escrowAbi,
+                data: log.data,
+                topics: log.topics,
+              });
+              if (decoded.eventName === "JobCreated" && (decoded.args as any).jobId !== undefined) {
+                createdJobId = BigInt((decoded.args as any).jobId);
+                break;
+              }
+            } catch {}
+          }
+        }
       }
 
-      const createdJobId = onchainJobId;
+      if (!createdJobId) {
+        createdJobId = fallbackJobId || BigInt(1);
+      }
+
       setJobId(createdJobId);
       // Track this job ID in localStorage so it shows on the escrow list
       trackJobId(Number(createdJobId));
@@ -309,24 +344,6 @@ function CreateEscrowContent() {
           if (qrReceipt.status !== "success") throw new Error("Failed to set physical QR confirmation code onchain!");
         }
 
-        // Save to Supabase Cloud Database
-        const hasSupabase = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        if (hasSupabase) {
-          try {
-            await supabase.from("escrow_submissions").upsert({
-              job_id: Number(createdJobId),
-              file_url: qrCodeWord,
-              file_name: "meetup_code",
-              status: "Funded",
-              result: "Physical meetup escrow initialized. Scan QR code to complete.",
-              source: "web"
-            });
-            console.log("Physical meetup release word saved to Supabase.");
-          } catch (dbErr) {
-            console.error("Failed to save meetup release word to Supabase:", dbErr);
-          }
-        }
-
         // Save to localStorage fallback
         try {
           localStorage.setItem(`arc_physical_code_${createdJobId}`, qrCodeWord);
@@ -335,54 +352,64 @@ function CreateEscrowContent() {
         }
       }
 
-      // Check if connected wallet IS the provider (same person — enables self-testing)
+      // Check if connected wallet IS the provider
       const walletIsProvider = address?.toLowerCase() === (provider as string).toLowerCase();
       setIsAlsoProvider(walletIsProvider);
 
-      if (walletIsProvider) {
-        // setBudget is only callable by the provider — do it now while we have their wallet
-        const setBudgetTxHash = await writeContract("setBudget", [createdJobId, budgetUSDC, "0x"]);
-        if (setBudgetTxHash && setBudgetTxHash !== "0x" && publicClient) {
-          const setBudgetReceipt = await waitForReceipt(publicClient, setBudgetTxHash);
-          if (setBudgetReceipt.status !== "success") throw new Error("setBudget transaction reverted!");
-        }
-        setStep(3); // Budget set — proceed to approve + fund
-      } else {
-        // Save the buyer's proposed budget to Supabase so the seller can see it
-        const hasSupabase = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        if (hasSupabase) {
-          try {
-            await supabase.from("escrow_submissions").upsert({
-              job_id: Number(createdJobId),
-              file_url: "",
-              file_name: "",
-              status: "Negotiation",
-              result: `Proposed budget: ${budget} USDC`,
-              source: "web"
-            });
-            console.log("Proposed budget saved to Supabase.");
-
-            // Send notification to the provider (seller)
-            await supabase.from("notifications").insert({
-              recipient_address: provider.toLowerCase(),
-              type: "COUNTER_OFFER",
-              escrow_id: Number(createdJobId),
-              message: `A new escrow contract (JOB #${createdJobId}) has been created for you by client ${address?.slice(0, 8)}...${address?.slice(-4)}. Please review the budget.`,
-              read: false,
-              metadata: { client: address, budget }
-            });
-            console.log("Creation notification sent to provider.");
-          } catch (dbErr) {
-            console.error("Failed to save proposed budget or send notification to Supabase:", dbErr);
-          }
-        }
-        
+      // Post initial price bid/proposal off-chain to the escrow chat room for digital/OTC escrows
+      if (escrowType !== "physical" && budget && parseFloat(budget) > 0) {
         try {
-          localStorage.setItem(`arc_proposed_budget_${createdJobId}`, budget);
-        } catch (err) {}
-
-        setStep(2); // Seller must set budget first — show waiting state with job ID
+          await fetch(`/api/escrow/${createdJobId}/messages`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sender: address || "anonymous",
+              senderRole: walletIsProvider ? "seller" : "buyer",
+              type: "bid",
+              text: `${walletIsProvider ? "Seller" : "Buyer"} opened escrow with a starting price offer of ${budget} USDC`,
+              bidAmount: parseFloat(budget),
+              status: "pending",
+            }),
+          });
+        } catch (e) {
+          console.warn("Failed to post initial off-chain bid:", e);
+        }
       }
+
+      // Save the buyer's proposed budget and initial physical state to Supabase so the seller can see it
+      const hasSupabase = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      if (hasSupabase) {
+        try {
+          const isPhysical = escrowType === "physical";
+          await supabase.from("escrow_submissions").upsert({
+            job_id: Number(createdJobId),
+            file_url: isPhysical ? (qrCodeWord || "") : "",
+            file_name: isPhysical ? "meetup_code" : "",
+            status: "Negotiation",
+            result: budget ? `Proposed budget: ${budget} USDC` : "Physical meetup escrow initialized",
+            source: "web"
+          });
+
+          // Send notification to the provider (seller)
+          await supabase.from("notifications").insert({
+            recipient_address: provider.toLowerCase(),
+            type: "COUNTER_OFFER",
+            escrow_id: Number(createdJobId),
+            message: `A new escrow contract (JOB #${createdJobId}) has been opened for you by client ${address?.slice(0, 8)}...${address?.slice(-4)} with proposed budget of ${budget} USDC.`,
+            read: false,
+            metadata: { client: address, budget }
+          });
+        } catch (dbErr) {
+          console.error("Failed to save notification to Supabase:", dbErr);
+        }
+      }
+      
+      try {
+        localStorage.setItem(`arc_proposed_budget_${createdJobId}`, budget);
+      } catch (err) {}
+
+      // Transition to Step 2 to enter chat & bidding room
+      setStep(2);
     } catch (err: any) {
       console.error(err);
       alert(`Transaction failed: ${err.message || err}`);
@@ -484,7 +511,7 @@ function CreateEscrowContent() {
             <Handshake size={20} />
           </div>
           <div>
-            <h1>Initialize Arc Escrow</h1>
+            <h1>Initialize Escrow</h1>
             <p style={{ color: "var(--text-secondary)" }}>Deploys a secure ERC-8183 escrow contract</p>
           </div>
         </div>
@@ -793,30 +820,25 @@ function CreateEscrowContent() {
 
         {step === 2 && jobId !== null && (
           <div style={{ display: "flex", flexDirection: "column", gap: "20px", textAlign: "center" }}>
-            <div style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: "12px", padding: "24px" }}>
-              <h3 style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: "8px" }}>✅ Job #{jobId.toString()} Created!</h3>
-              <p style={{ color: "var(--text-secondary)", lineHeight: 1.6, fontSize: "0.9rem" }}>
-                The escrow job is live onchain. The <b>seller must set the budget</b> before you can fund it.
+            <div style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.25)", borderRadius: "14px", padding: "24px" }}>
+              <div style={{ fontSize: "2rem", marginBottom: "8px" }}>💬</div>
+              <h3 style={{ fontSize: "1.3rem", fontWeight: 700, marginBottom: "8px" }}>Escrow #{jobId.toString()} Opened!</h3>
+              <p style={{ color: "var(--text-secondary)", lineHeight: 1.6, fontSize: "0.9rem", margin: 0 }}>
+                Your escrow is initialized. Price offers and negotiations are handled <b>instantly off-chain</b> in the live chat room without waiting for on-chain transactions.
               </p>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px", textAlign: "left" }}>
-              <div style={{ padding: "12px 16px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-color)", borderRadius: "8px" }}>
-                <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Job ID (share with seller)</span>
+              <div style={{ padding: "14px 18px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-color)", borderRadius: "10px" }}>
+                <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Job ID (share with counterparty)</span>
                 <div style={{ fontFamily: "Space Grotesk", fontSize: "1.4rem", fontWeight: 700, color: "var(--primary)", marginTop: "4px" }}>#{jobId.toString()}</div>
               </div>
-              <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
-                Share this Job ID with the seller. Once they connect their wallet at the escrow page and confirm their price, you will be taken directly to fund it.
+              <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: 1.5, margin: 0 }}>
+                Join the chat room to propose bids, counter-offer, or discuss deliverables. Once both parties agree on a price, you can submit the final amount on-chain and fund it in one click.
               </p>
-              {isPollingBudget && (
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 14px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-color)", borderRadius: "8px", fontSize: "0.85rem", color: "var(--text-muted)" }}>
-                  <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: "#f59e0b", animation: "pulse 1.5s infinite" }} />
-                  Watching for seller's budget confirmation...
-                </div>
-              )}
             </div>
             <div style={{ display: "flex", gap: "10px" }}>
-              <a href={`/escrow/${jobId.toString()}`} className="btn-primary" style={{ flex: 1, justifyContent: "center", textDecoration: "none" }}>
-                Open Escrow #{jobId.toString()} →
+              <a href={`/escrow/${jobId.toString()}`} className="btn-primary" style={{ flex: 1, justifyContent: "center", textDecoration: "none", padding: "12px", fontSize: "0.95rem" }}>
+                Open Live Chat & Bidding Room →
               </a>
             </div>
           </div>

@@ -10,6 +10,7 @@ import {
   Twitter,
   Dribbble,
   Globe,
+  Handshake,
 } from "lucide-react";
 
 export const TextHoverEffect = ({
@@ -183,7 +184,7 @@ export default function HoverFooter() {
       title: "Help & Resources",
       links: [
         { label: "FAQs", href: "#" },
-        { label: "Support Bot", href: "https://t.me/ArcHandshakeBot", pulse: true },
+        { label: "Support Bot", href: "https://t.me/HandshakeBot", pulse: true },
         { label: "Developer Docs", href: "#" },
       ],
     },
@@ -192,12 +193,12 @@ export default function HoverFooter() {
   const contactInfo = [
     {
       icon: <Mail size={18} className="text-neutral-400" />,
-      text: "hello@archandshake.com",
-      href: "mailto:hello@archandshake.com",
+      text: "hello@handshake.com",
+      href: "mailto:hello@handshake.com",
     },
     {
       icon: <MapPin size={18} className="text-neutral-400" />,
-      text: "Arc L1 Network",
+      text: "Global Settlement Network",
     },
   ];
 
@@ -220,13 +221,11 @@ export default function HoverFooter() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 md:gap-8 lg:gap-16 pb-12">
           {/* Brand */}
           <div className="flex flex-col space-y-3">
-            <img
-              src="/logo.png"
-              alt="ArcHandshake"
-              style={{ height: "36px", width: "auto", maxWidth: "100%", objectFit: "contain", objectPosition: "left" }}
-            />
+            <span className="font-extrabold text-2xl tracking-tight text-white" style={{ fontFamily: "Space Grotesk, sans-serif" }}>
+              Handshake
+            </span>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Autonomous escrow templates, physical meetup confirmation code hashes, and group spending limit accounting policies on Arc L1.
+              Autonomous escrow templates, physical meetup confirmation code hashes, and group spending limit accounting policies.
             </p>
           </div>
 
@@ -278,7 +277,7 @@ export default function HoverFooter() {
             ))}
           </div>
           <p className="text-center md:text-left">
-            &copy; {new Date().getFullYear()} ArcHandshake. All rights reserved.
+            &copy; {new Date().getFullYear()} Handshake. All rights reserved.
           </p>
         </div>
       </div>

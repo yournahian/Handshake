@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { publicClient } from "@/lib/publicClient";
 import { escrowAbi, DEPLOYED_ESCROW_ADDRESS } from "@/lib/contracts";
 import { formatUnits } from "viem";
-import { Search, Filter, ExternalLink, ArrowRight, Shield, MapPin, Zap, Plus, RefreshCw, MessageSquare, Briefcase } from "lucide-react";
+import { Search, Filter, ExternalLink, ArrowRight, Shield, MapPin, Zap, Plus, RefreshCw, MessageSquare, Briefcase, Edit2, Trash2, UserCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useWallet } from "@/hooks/useWallet";
 
@@ -36,7 +36,7 @@ export default function EscrowBoardPage() {
   const router = useRouter();
   const { isConnected, address } = useWallet();
 
-  const [activeTab, setActiveTab] = useState<"onchain" | "p2p">("onchain");
+  const [activeTab, setActiveTab] = useState<"onchain" | "p2p" | "my_listings">("onchain");
   const [escrows, setEscrows] = useState<BoardEscrow[]>([]);
   const [p2pListings, setP2pListings] = useState<OpenListing[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,6 +54,41 @@ export default function EscrowBoardPage() {
   const [postType, setPostType] = useState<"digital" | "physical">("digital");
   const [submitting, setSubmitting] = useState(false);
 
+  // Edit Listing State
+  const [editingListing, setEditingListing] = useState<OpenListing | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editBudget, setEditBudget] = useState("");
+  const [editContact, setEditContact] = useState("");
+  const [editRole, setEditRole] = useState<"buyer" | "seller">("buyer");
+  const [editType, setEditType] = useState<"digital" | "physical">("digital");
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // Custom Toast state
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const toastTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const alert = React.useCallback((message: string) => {
+    const lower = message.toLowerCase();
+    const isError = lower.includes("failed") || 
+                    lower.includes("error") || 
+                    lower.includes("offline") || 
+                    lower.includes("invalid") || 
+                    lower.includes("required") ||
+                    lower.includes("please connect");
+    
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+
+    setToast({ message: message.replace(/\n/g, " "), type: isError ? "error" : "success" });
+    
+    toastTimeoutRef.current = setTimeout(() => {
+      setToast(null);
+      toastTimeoutRef.current = null;
+    }, 4500);
+  }, []);
+
   const fetchOnChainJobs = async () => {
     try {
       const nextId = await publicClient.readContract({
@@ -63,30 +98,38 @@ export default function EscrowBoardPage() {
       }) as bigint;
 
       const total = Number(nextId);
-      const results: BoardEscrow[] = [];
-      const start = Math.max(1, total - 100);
+      if (total <= 1) {
+        setEscrows([]);
+        return;
+      }
 
-      const calls = Array.from({ length: total - start }, (_, i) =>
-        publicClient.readContract({
+      const results: BoardEscrow[] = [];
+      const start = Math.max(1, total - 15);
+
+      const calls = Array.from({ length: total - start + 1 }, (_, i) => {
+        const currentId = BigInt(total - i);
+        if (currentId < 1n) return Promise.resolve(null);
+
+        return publicClient.readContract({
           address: DEPLOYED_ESCROW_ADDRESS,
           abi: escrowAbi,
-          functionName: "getJob",
-          args: [BigInt(start + i)],
+          functionName: "jobs",
+          args: [currentId],
         }).then((j: any) => ({
           id: Number(j[0]),
           client: j[1],
           provider: j[2],
           description: j[4],
-          budget: formatUnits(j[5], 6),
-          expiredAt: Number(j[6]),
-          status: j[7],
+          budget: formatUnits(j[5] || 0n, 6),
+          expiredAt: Number(j[6] || 0n),
+          status: Number(j[7] ?? 0),
           isPhysical: false,
-        })).catch(() => null)
-      );
+        })).catch(() => null);
+      });
 
       const jobs = (await Promise.all(calls)).filter(Boolean) as BoardEscrow[];
       results.push(...jobs.filter(j => j.status === 0));
-      setEscrows(results.reverse());
+      setEscrows(results);
     } catch (e) {
       console.error("Board load error:", e);
     }
@@ -106,7 +149,7 @@ export default function EscrowBoardPage() {
 
   const loadAllData = async () => {
     setLoading(true);
-    await Promise.all([fetchOnChainJobs(), fetchP2pListings()]);
+    await Promise.allSettled([fetchP2pListings(), fetchOnChainJobs()]);
     setLoading(false);
   };
 
@@ -160,7 +203,74 @@ export default function EscrowBoardPage() {
     }
   };
 
+  const openEditModal = (listing: OpenListing) => {
+    setEditingListing(listing);
+    setEditTitle(listing.title);
+    setEditDesc(listing.description.replace(/\[.*?\]/g, "").trim());
+    setEditBudget(listing.budget.toString());
+    setEditContact(listing.contact_info || "");
+    setEditRole((listing.creator_role as any) || (listing.description.includes("[Role: seller]") ? "seller" : "buyer"));
+    setEditType((listing.listing_type as any) || (listing.description.includes("[Physical Meetup]") ? "physical" : "digital"));
+  };
+
+  const handleUpdateListing = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingListing || !address) return;
+    setIsUpdating(true);
+    try {
+      const res = await fetch("/api/listings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingListing.id,
+          title: editTitle,
+          description: editDesc,
+          budget: editBudget,
+          creatorAddress: address,
+          contactInfo: editContact,
+          creatorRole: editRole,
+          listingType: editType,
+        })
+      });
+      if (res.ok) {
+        alert("Listing updated successfully!");
+        setEditingListing(null);
+        fetchP2pListings();
+      } else {
+        const err = await res.json();
+        alert(err.error || "Failed to update listing");
+      }
+    } catch (e: any) {
+      alert("Error updating listing: " + e.message);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDeleteListing = async (id: string) => {
+    if (!address) return;
+    if (!window.confirm("Are you sure you want to delete this listing?")) return;
+    try {
+      const res = await fetch(`/api/listings?id=${id}&creatorAddress=${address}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        alert("Listing deleted successfully!");
+        setP2pListings(prev => prev.filter(item => item.id !== id));
+      } else {
+        const err = await res.json();
+        alert(err.error || "Failed to delete listing");
+      }
+    } catch (e: any) {
+      alert("Error deleting listing: " + e.message);
+    }
+  };
+
   // Filter listings & escrows
+  const cleanAddr = address ? address.toLowerCase() : "";
+  const myListings = p2pListings.filter(l => cleanAddr && l.creator_address.toLowerCase() === cleanAddr);
+  const publicP2pListings = p2pListings.filter(l => !cleanAddr || l.creator_address.toLowerCase() !== cleanAddr);
+
   const getFilteredItems = () => {
     if (activeTab === "onchain") {
       let list = [...escrows];
@@ -175,13 +285,24 @@ export default function EscrowBoardPage() {
       if (sortBy === "budget_high") list.sort((a, b) => parseFloat(b.budget) - parseFloat(a.budget));
       if (sortBy === "budget_low") list.sort((a, b) => parseFloat(a.budget) - parseFloat(b.budget));
       return list;
-    } else {
-      let list = [...p2pListings];
+    } else if (activeTab === "p2p") {
+      let list = [...publicP2pListings];
       if (search) {
         list = list.filter(e =>
           e.title.toLowerCase().includes(search.toLowerCase()) ||
           e.description.toLowerCase().includes(search.toLowerCase()) ||
           e.creator_address.toLowerCase().includes(search.toLowerCase())
+        );
+      }
+      if (sortBy === "budget_high") list.sort((a, b) => b.budget - a.budget);
+      if (sortBy === "budget_low") list.sort((a, b) => a.budget - b.budget);
+      return list;
+    } else {
+      let list = [...myListings];
+      if (search) {
+        list = list.filter(e =>
+          e.title.toLowerCase().includes(search.toLowerCase()) ||
+          e.description.toLowerCase().includes(search.toLowerCase())
         );
       }
       if (sortBy === "budget_high") list.sort((a, b) => b.budget - a.budget);
@@ -224,13 +345,14 @@ export default function EscrowBoardPage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", borderBottom: "1px solid var(--border-color)", gap: "16px" }}>
+      <div style={{ display: "flex", borderBottom: "1px solid var(--border-color)", gap: "16px", overflowX: "auto" }}>
         <button
           onClick={() => setActiveTab("onchain")}
           style={{
             background: "none", border: "none", padding: "10px 4px", fontSize: "0.9rem", fontWeight: activeTab === "onchain" ? 700 : 500,
             color: activeTab === "onchain" ? "var(--primary)" : "var(--text-muted)", cursor: "pointer",
             borderBottom: activeTab === "onchain" ? "2px solid var(--primary)" : "none",
+            whiteSpace: "nowrap"
           }}
         >
           On-Chain Negotiating ({escrows.length})
@@ -241,9 +363,24 @@ export default function EscrowBoardPage() {
             background: "none", border: "none", padding: "10px 4px", fontSize: "0.9rem", fontWeight: activeTab === "p2p" ? 700 : 500,
             color: activeTab === "p2p" ? "var(--primary)" : "var(--text-muted)", cursor: "pointer",
             borderBottom: activeTab === "p2p" ? "2px solid var(--primary)" : "none",
+            whiteSpace: "nowrap"
           }}
         >
-          Freelance P2P Listings ({p2pListings.length})
+          Freelance Marketplace ({publicP2pListings.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("my_listings")}
+          style={{
+            background: "none", border: "none", padding: "10px 4px", fontSize: "0.9rem", fontWeight: activeTab === "my_listings" ? 700 : 500,
+            color: activeTab === "my_listings" ? "var(--primary)" : "var(--text-muted)", cursor: "pointer",
+            borderBottom: activeTab === "my_listings" ? "2px solid var(--primary)" : "none",
+            whiteSpace: "nowrap",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px"
+          }}
+        >
+          <UserCheck size={14} /> My Listings ({myListings.length})
         </button>
       </div>
 
@@ -298,7 +435,9 @@ export default function EscrowBoardPage() {
         ) : filteredItems.length === 0 ? (
           <div className="glass-card" style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)" }}>
             <Shield size={36} style={{ opacity: 0.3, marginBottom: "12px" }} />
-            <p style={{ margin: 0 }}>No items found matching your filters</p>
+            <p style={{ margin: 0 }}>
+              {activeTab === "my_listings" ? "You haven't posted any listings yet. Click 'Post a Job' above!" : "No items found matching your filters"}
+            </p>
           </div>
         ) : activeTab === "onchain" ? (
           (filteredItems as BoardEscrow[]).map(e => (
@@ -348,6 +487,79 @@ export default function EscrowBoardPage() {
               <ArrowRight size={16} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
             </div>
           ))
+        ) : activeTab === "my_listings" ? (
+          (filteredItems as OpenListing[]).map(e => (
+            <div
+              key={e.id}
+              className="glass-card"
+              style={{ padding: "20px", display: "flex", alignItems: "center", gap: "16px", border: "1px solid var(--border-color)" }}
+            >
+              <div style={{
+                width: "42px", height: "42px", borderRadius: "12px", flexShrink: 0,
+                background: "linear-gradient(135deg, rgba(99,102,241,0.2), rgba(168,85,247,0.15))",
+                border: "1px solid rgba(99,102,241,0.3)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "#a5b4fc",
+              }}>
+                <UserCheck size={18} />
+              </div>
+
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                  <span style={{
+                    fontSize: "0.62rem", fontWeight: 800, padding: "2px 6px", borderRadius: "999px",
+                    background: e.creator_role === "seller" ? "rgba(168,85,247,0.15)" : "rgba(16,185,129,0.15)",
+                    color: e.creator_role === "seller" ? "#c084fc" : "#10b981",
+                  }}>
+                    {e.creator_role === "seller" ? "YOUR SERVICE OFFER" : "YOUR JOB POST"}
+                  </span>
+                  <span style={{
+                    fontSize: "0.62rem", fontWeight: 800, padding: "2px 6px", borderRadius: "999px",
+                    background: e.listing_type === "physical" ? "rgba(245,158,11,0.15)" : "rgba(59,130,246,0.15)",
+                    color: e.listing_type === "physical" ? "#f59e0b" : "#3b82f6",
+                  }}>
+                    {e.listing_type === "physical" ? "PHYSICAL / MEETUP" : "ONLINE / DIGITAL"}
+                  </span>
+                </div>
+                <h3 style={{ margin: "0 0 4px", fontWeight: 700, fontSize: "0.95rem" }}>
+                  {e.title}
+                </h3>
+                <p style={{ margin: "0 0 6px", fontSize: "0.82rem", color: "var(--text-muted)", lineHeight: 1.4 }}>
+                  {e.description.replace(/\[.*?\]/g, "").trim()}
+                </p>
+                {e.contact_info && (
+                  <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "4px" }}>
+                    <MessageSquare size={11} style={{ color: "var(--primary)" }} /> Contact: {e.contact_info}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ textAlign: "right", flexShrink: 0, display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-end" }}>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: "1.05rem", color: "#10b981" }}>
+                    {parseFloat(e.budget.toString()).toFixed(2)} USDC
+                  </div>
+                  <div style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>Your Budget</div>
+                </div>
+                <div style={{ display: "flex", gap: "6px" }}>
+                  <button
+                    onClick={() => openEditModal(e)}
+                    className="btn-secondary"
+                    style={{ padding: "4px 10px", fontSize: "0.75rem", margin: 0, display: "flex", alignItems: "center", gap: "4px" }}
+                  >
+                    <Edit2 size={12} /> Edit
+                  </button>
+                  <button
+                    onClick={() => handleDeleteListing(e.id)}
+                    className="btn-secondary"
+                    style={{ padding: "4px 10px", fontSize: "0.75rem", margin: 0, display: "flex", alignItems: "center", gap: "4px", borderColor: "rgba(239,68,68,0.3)", color: "var(--danger)" }}
+                  >
+                    <Trash2 size={12} /> Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
         ) : (
           (filteredItems as OpenListing[]).map(e => (
             <div
@@ -390,7 +602,7 @@ export default function EscrowBoardPage() {
                   {e.title}
                 </h3>
                 <p style={{ margin: "0 0 6px", fontSize: "0.82rem", color: "var(--text-muted)", lineHeight: 1.4 }}>
-                  {e.description}
+                  {e.description.replace(/\[.*?\]/g, "").trim()}
                 </p>
                 <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap", fontSize: "0.72rem", color: "var(--text-muted)" }}>
                   <span>Creator: {e.creator_address.slice(0, 8)}...{e.creator_address.slice(-4)}</span>
@@ -411,19 +623,129 @@ export default function EscrowBoardPage() {
                 </div>
                 <button
                   onClick={() => {
-                    const providerParam = e.creator_role === "seller" ? `&provider=${e.creator_address}` : "";
-                    router.push(`/escrow/create?description=${encodeURIComponent(e.description)}&amount=${e.budget}&type=${e.listing_type || "digital"}${providerParam}`);
+                    const isPhysical = e.listing_type === "physical" || e.description?.includes("[Physical Meetup]");
+                    const targetType = isPhysical ? "physical" : "digital";
+                    const cleanDesc = e.title + (e.description ? ` - ${e.description.replace(/\[.*?\]/g, "").trim()}` : "");
+                    const isSellerListing = e.creator_role === "seller" || e.description?.includes("[Role: seller]");
+                    const counterpartyParam = isSellerListing ? `provider=${e.creator_address}&role=buyer` : `buyer=${e.creator_address}&role=seller`;
+                    
+                    router.push(`/escrow/create?description=${encodeURIComponent(cleanDesc)}&amount=${e.budget}&type=${targetType}&${counterpartyParam}`);
                   }}
                   className="btn-primary"
-                  style={{ padding: "4px 10px", fontSize: "0.75rem", margin: 0, display: "flex", alignItems: "center", gap: "2px" }}
+                  style={{ padding: "6px 14px", fontSize: "0.8rem", margin: 0, display: "flex", alignItems: "center", gap: "4px" }}
                 >
-                  {e.creator_role === "seller" ? "Hire / Create Escrow" : "Apply / Create Escrow"} <ArrowRight size={12} />
+                  {e.creator_role === "seller" ? "Hire / Create Escrow" : "Accept / Create Escrow"} <ArrowRight size={13} />
                 </button>
               </div>
             </div>
           ))
         )}
       </div>
+
+      {/* Edit listing Modal */}
+      {editingListing && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)",
+          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "16px"
+        }}>
+          <form onSubmit={handleUpdateListing} className="glass-card" style={{ width: "100%", maxWidth: "480px", padding: "24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+            <h2 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 700 }}>✏️ Edit P2P Listing</h2>
+            <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)", lineHeight: 1.4 }}>
+              Update your listing details on the marketplace board.
+            </p>
+
+            <div style={{ display: "flex", gap: "10px" }}>
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px" }}>
+                <label style={{ fontSize: "0.8rem", fontWeight: 600 }}>Listing Type</label>
+                <select
+                  value={editRole}
+                  onChange={e => setEditRole(e.target.value as any)}
+                  style={{ padding: "8px", borderRadius: "8px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-color)", color: "#f1f5f9", fontSize: "0.82rem" }}
+                >
+                  <option value="buyer">Looking to Hire (Buyer)</option>
+                  <option value="seller">Offering Services (Seller)</option>
+                </select>
+              </div>
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px" }}>
+                <label style={{ fontSize: "0.8rem", fontWeight: 600 }}>Work Location</label>
+                <select
+                  value={editType}
+                  onChange={e => setEditType(e.target.value as any)}
+                  style={{ padding: "8px", borderRadius: "8px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-color)", color: "#f1f5f9", fontSize: "0.82rem" }}
+                >
+                  <option value="digital">Online / Digital</option>
+                  <option value="physical">In-Person / Physical</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <label style={{ fontSize: "0.8rem", fontWeight: 600 }}>Title *</label>
+              <input
+                type="text"
+                value={editTitle}
+                onChange={e => setEditTitle(e.target.value)}
+                required
+                style={{ padding: "10px", borderRadius: "8px", fontSize: "0.85rem" }}
+              />
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <label style={{ fontSize: "0.8rem", fontWeight: 600 }}>Description *</label>
+              <textarea
+                value={editDesc}
+                onChange={e => setEditDesc(e.target.value)}
+                required
+                rows={3}
+                style={{ padding: "10px", borderRadius: "8px", fontSize: "0.85rem", resize: "none" }}
+              />
+            </div>
+
+            <div style={{ display: "flex", gap: "12px" }}>
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "6px" }}>
+                <label style={{ fontSize: "0.8rem", fontWeight: 600 }}>Budget (USDC) *</label>
+                <input
+                  type="number"
+                  value={editBudget}
+                  onChange={e => setEditBudget(e.target.value)}
+                  required
+                  min="1"
+                  style={{ padding: "10px", borderRadius: "8px", fontSize: "0.85rem" }}
+                />
+              </div>
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "6px" }}>
+                <label style={{ fontSize: "0.8rem", fontWeight: 600 }}>Telegram or Email</label>
+                <input
+                  type="text"
+                  placeholder="@handle"
+                  value={editContact}
+                  onChange={e => setEditContact(e.target.value)}
+                  style={{ padding: "10px", borderRadius: "8px", fontSize: "0.85rem" }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+              <button
+                type="submit"
+                disabled={isUpdating}
+                className="btn-primary"
+                style={{ flex: 1, margin: 0, height: "38px" }}
+              >
+                {isUpdating ? "Saving..." : "Save Changes"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditingListing(null)}
+                className="btn-secondary"
+                style={{ margin: 0, height: "38px" }}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Post listing Modal */}
       {showModal && (
@@ -533,10 +855,48 @@ export default function EscrowBoardPage() {
         </div>
       )}
 
+      {/* Toast Notification Banner */}
+      {toast && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "32px",
+            right: "32px",
+            background: toast.type === "error" ? "rgba(239, 68, 68, 0.95)" : "rgba(16, 185, 129, 0.95)",
+            color: "#ffffff",
+            padding: "14px 22px",
+            borderRadius: "12px",
+            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
+            backdropFilter: "blur(12px)",
+            zIndex: 99999,
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            fontWeight: 500,
+            fontSize: "0.92rem",
+            maxWidth: "420px",
+            animation: "slideInToast 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+          }}
+        >
+          <span>{toast.type === "error" ? "⚠️" : "✨"}</span>
+          <span>{toast.message}</span>
+        </div>
+      )}
+
       <style>{`
         @keyframes pulse {
           0%, 100% { opacity: 0.5; }
           50% { opacity: 0.25; }
+        }
+        @keyframes slideInToast {
+          from {
+            opacity: 0;
+            transform: translateY(16px) scale(0.96);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
         }
       `}</style>
 

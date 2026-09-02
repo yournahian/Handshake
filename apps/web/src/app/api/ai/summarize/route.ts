@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const prompt = `You are an escrow contract assistant for ArcHandshake, a USDC peer-to-peer escrow platform on Arc blockchain.
+    const prompt = `You are an escrow contract assistant for Handshake, a USDC peer-to-peer escrow platform on Arc blockchain.
 
 Analyze this job/escrow description and respond in JSON only (no markdown):
 Description: "${description}"
