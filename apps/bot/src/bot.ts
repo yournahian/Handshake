@@ -77,6 +77,9 @@ app.get("/", (req, res) => {
 app.get("/health", (req, res) => {
   res.json({ status: "ok", timestamp: Date.now() });
 });
+app.get("/healthz", (req, res) => {
+  res.json({ status: "ok", timestamp: Date.now() });
+});
 
 // Helper to update submission status in Supabase Database
 async function updateDbStatus(jobId: number, status: string, result: string) {
