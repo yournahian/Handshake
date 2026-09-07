@@ -97,14 +97,14 @@ export default function EscrowBoardPage() {
         functionName: "nextJobId",
       }) as bigint;
 
-      const total = Number(nextId);
-      if (total <= 1) {
+      const total = Number(nextId) - 1;
+      if (total < 1) {
         setEscrows([]);
         return;
       }
 
       const results: BoardEscrow[] = [];
-      const start = Math.max(1, total - 15);
+      const start = Math.max(1, total - 14);
 
       const calls = Array.from({ length: total - start + 1 }, (_, i) => {
         const currentId = BigInt(total - i);
@@ -128,7 +128,7 @@ export default function EscrowBoardPage() {
       });
 
       const jobs = (await Promise.all(calls)).filter(Boolean) as BoardEscrow[];
-      results.push(...jobs.filter(j => j.status === 0));
+      results.push(...jobs.filter(j => j.id > 0 && j.status === 0 && j.client && j.client !== "0x0000000000000000000000000000000000000000"));
       setEscrows(results);
     } catch (e) {
       console.error("Board load error:", e);
@@ -345,7 +345,15 @@ export default function EscrowBoardPage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", borderBottom: "1px solid var(--border-color)", gap: "16px", overflowX: "auto" }}>
+      <div style={{
+        display: "flex",
+        borderBottom: "1px solid var(--border-color)",
+        gap: "12px",
+        overflowX: "auto",
+        WebkitOverflowScrolling: "touch",
+        scrollbarWidth: "none",
+        paddingBottom: "2px"
+      }}>
         <button
           onClick={() => setActiveTab("onchain")}
           style={{

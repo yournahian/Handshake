@@ -17,6 +17,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { Home, ShieldCheck, QrCode, Landmark, Globe, Handshake } from "lucide-react";
 import { HeaderWallet } from "@/components/HeaderWallet";
 import { NotificationBell } from "@/components/NotificationBell";
+import { getJobType } from "@/lib/escrow-tracking";
 
 const NAV_TABS = [
   { href: "/",              label: "Home",    icon: Home },
@@ -38,7 +39,12 @@ function MobileNavContent() {
   }, []);
 
   const typeParam = searchParams.get("type");
-  const isPhysical = pathname.startsWith("/meetup") || (pathname.startsWith("/escrow/create") && typeParam === "physical");
+  const escrowIdMatch = pathname.match(/^\/escrow\/(\d+)$/);
+  const currentEscrowId = escrowIdMatch ? Number(escrowIdMatch[1]) : null;
+  const isPhysicalJob = currentEscrowId !== null && getJobType(currentEscrowId) === "physical";
+  const isPhysical = pathname.startsWith("/meetup") || 
+                     (pathname.startsWith("/escrow/create") && typeParam === "physical") ||
+                     isPhysicalJob;
   const isBoard = pathname.startsWith("/escrow/board");
 
   const isActive = (href: string) => {

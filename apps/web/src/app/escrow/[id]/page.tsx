@@ -6,7 +6,7 @@ import { formatUnits, parseUnits, keccak256, toHex, encodeFunctionData } from "v
 import { escrowAbi, DEPLOYED_ESCROW_ADDRESS } from "@/lib/contracts";
 import { ShieldAlert, ShieldCheck, Download, Upload, AlertCircle, RefreshCw, DollarSign, Wallet, Clock } from "lucide-react";
 import confetti from "canvas-confetti";
-import { trackJobId } from "@/lib/escrow-tracking";
+import { trackJobId, setJobType } from "@/lib/escrow-tracking";
 import { supabase } from "@/lib/supabase";
 import { waitForReceipt } from "@/lib/utils";
 import { useWallet } from "@/hooks/useWallet";
@@ -186,6 +186,11 @@ export default function EscrowDetail() {
   useEffect(() => {
     if (jobRaw) {
       trackJobId(Number(jobId)); // add to known list for any visitor
+      const qrHash = jobRaw[10];
+      const isPhysical = qrHash && qrHash !== "0x0000000000000000000000000000000000000000000000000000000000000000";
+      if (isPhysical) {
+        setJobType(Number(jobId), "physical");
+      }
     }
   }, [jobRaw, jobId]);
 
@@ -1397,16 +1402,16 @@ export default function EscrowDetail() {
 
         {/* Roles Dashboard */}
         <div className="escrow-roles-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
-          <div style={{ background: "rgba(255, 255, 255, 0.02)", border: "1px solid var(--border-color)", borderRadius: "12px", padding: "16px" }}>
+          <div style={{ background: "rgba(255, 255, 255, 0.02)", border: "1px solid var(--border-color)", borderRadius: "12px", padding: "16px", minWidth: 0 }}>
             <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>Client / Buyer</span>
-            <div style={{ fontFamily: "Space Grotesk", fontSize: "0.95rem", marginTop: "4px", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {client} {isClient && <span style={{ color: "var(--primary)" }}>(You)</span>}
+            <div style={{ fontFamily: "Space Grotesk", fontSize: "0.92rem", marginTop: "4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={client}>
+              {client ? `${client.slice(0, 6)}...${client.slice(-4)}` : ""} {isClient && <span style={{ color: "var(--primary)" }}>(You)</span>}
             </div>
           </div>
-          <div style={{ background: "rgba(255, 255, 255, 0.02)", border: "1px solid var(--border-color)", borderRadius: "12px", padding: "16px" }}>
+          <div style={{ background: "rgba(255, 255, 255, 0.02)", border: "1px solid var(--border-color)", borderRadius: "12px", padding: "16px", minWidth: 0 }}>
             <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>Seller / Provider</span>
-            <div style={{ fontFamily: "Space Grotesk", fontSize: "0.95rem", marginTop: "4px", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {provider} {isProvider && <span style={{ color: "var(--secondary)" }}>(You)</span>}
+            <div style={{ fontFamily: "Space Grotesk", fontSize: "0.92rem", marginTop: "4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={provider}>
+              {provider ? `${provider.slice(0, 6)}...${provider.slice(-4)}` : ""} {isProvider && <span style={{ color: "var(--secondary)" }}>(You)</span>}
             </div>
           </div>
           <div style={{ background: "rgba(255, 255, 255, 0.02)", border: "1px solid var(--border-color)", borderRadius: "12px", padding: "16px" }}>

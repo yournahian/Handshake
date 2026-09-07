@@ -998,12 +998,12 @@ export default function MeetupDetail() {
             border: "1px solid var(--border-color)",
             borderRadius: "12px",
             display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: "16px",
+            flexDirection: "column",
+            gap: "12px",
+            textAlign: "left",
             boxSizing: "border-box"
           }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "2px", textAlign: "left" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
               <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--text-primary)" }}>Need Human Assistance?</span>
               <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-secondary)", lineHeight: 1.4 }}>
                 If you encounter any issues with verification, or need dispute mediation, contact admin support.
@@ -1019,11 +1019,13 @@ export default function MeetupDetail() {
               onClick={() => window.open("https://t.me/HandshakeBot", "_blank")}
               className="btn-secondary"
               style={{
-                padding: "8px 16px",
-                fontSize: "0.8rem",
+                width: "100%",
+                padding: "10px 16px",
+                fontSize: "0.82rem",
                 whiteSpace: "nowrap",
                 display: "inline-flex",
                 alignItems: "center",
+                justifyContent: "center",
                 gap: "6px"
               }}
             >

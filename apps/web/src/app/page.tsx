@@ -67,7 +67,7 @@ export default function Home() {
         globeRadius={1.1}
         className="bg-gradient-to-br from-background via-background/95 to-muted/10 relative overflow-hidden min-h-[90vh] sm:min-h-[85vh] py-12 sm:py-20 golden-horizon-divider"
       >
-        <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-background/30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/60 to-background/30 pointer-events-none" />
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-primary/3 rounded-full blur-3xl animate-pulse" />
         
@@ -90,7 +90,7 @@ export default function Home() {
               <div className="w-1.5 h-1.5 bg-primary rounded-full animate-ping animation-delay-500" />
             </motion.div>
             
-            <div className="space-y-4">
+            <div className="space-y-4 mb-8 sm:mb-6">
               <motion.h1 
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -122,12 +122,12 @@ export default function Home() {
                   >
                     Finance Onchain
                   </div>
-                  {/* Animated underline bar — matching reference image */}
+                  {/* Animated underline bar */}
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: "100%" }}
                     transition={{ duration: 1.5, delay: 1.2, ease: "easeOut" }}
-                    className="absolute -bottom-5 left-0 h-[6px] bg-gradient-to-r from-white via-white/90 to-white/10 rounded-full shadow-[0_0_20px_6px_rgba(255,255,255,0.5),0_0_40px_10px_rgba(255,255,255,0.2)]"
+                    className="absolute -bottom-3 sm:-bottom-5 left-0 h-[3px] sm:h-[6px] bg-gradient-to-r from-white via-white/90 to-white/10 rounded-full shadow-[0_0_12px_3px_rgba(255,255,255,0.4)]"
                   />
                 </span>
               </motion.h1>

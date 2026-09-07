@@ -442,6 +442,34 @@ label {
   gap: 12px;
 }
 
+/* ── Notification Dropdown Panel ────────────────────────────────────────────── */
+.notification-dropdown-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 340px;
+  background: hsl(0 0% 8%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.7);
+  z-index: 9999;
+  overflow: hidden;
+  animation: slideUp 0.15s ease;
+}
+
+@media (max-width: 640px) {
+  .notification-dropdown-panel {
+    position: fixed !important;
+    top: 56px !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    max-width: 390px !important;
+    margin: 0 auto !important;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.9) !important;
+  }
+}
+
 /* ── Desktop Header visibility / Mobile Top Bar toggle ───────────────────────── */
 
 .desktop-header {
