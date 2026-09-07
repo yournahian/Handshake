@@ -48,8 +48,7 @@ function CreateEscrowContent() {
   const [creatorRole, setCreatorRole] = useState<"buyer" | "seller">("buyer");
   const [provider, setProvider] = useState("");
   const [evaluator, setEvaluator] = useState(DEFAULT_EVALUATOR);
-  const [evaluatorChoice, setEvaluatorChoice] = useState<"ai" | "self" | "custom">("ai");
-  const [showCustomEvaluator, setShowCustomEvaluator] = useState(false);
+  const [evaluatorChoice, setEvaluatorChoice] = useState<"ai" | "self">("ai");
   const [budget, setBudget] = useState("");
   const [description, setDescription] = useState("");
   const [hours, setHours] = useState("24");
@@ -650,90 +649,93 @@ function CreateEscrowContent() {
             </div>
 
             <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                <label style={{ margin: 0 }}>Escrow Arbitrator / Evaluator</label>
-                <button
-                  type="button"
-                  onClick={() => setShowCustomEvaluator(!showCustomEvaluator)}
-                  style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: "0.76rem", cursor: "pointer", padding: 0 }}
-                >
-                  {showCustomEvaluator ? "Hide Custom Address" : "⚙️ Custom Arbitrator"}
-                </button>
-              </div>
+              {creatorRole === "buyer" ? (
+                <>
+                  <div style={{ marginBottom: "8px" }}>
+                    <label style={{ margin: 0 }}>Escrow Arbitrator & Verification Method</label>
+                  </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                <div
-                  onClick={() => {
-                    setEvaluatorChoice("ai");
-                    setEvaluator(DEFAULT_EVALUATOR);
-                  }}
-                  style={{
-                    padding: "14px",
-                    borderRadius: "12px",
-                    cursor: "pointer",
-                    background: evaluatorChoice === "ai" ? "rgba(99, 102, 241, 0.12)" : "rgba(255, 255, 255, 0.02)",
-                    border: evaluatorChoice === "ai" ? "1.5px solid var(--primary)" : "1px solid var(--border-color)",
-                    transition: "all 0.2s ease",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <span style={{ fontSize: "1.1rem" }}>🤖</span>
-                      <span style={{ fontWeight: 700, fontSize: "0.9rem", color: evaluatorChoice === "ai" ? "var(--primary)" : "var(--text-primary)" }}>
-                        Handshake AI Agent
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                    <div
+                      onClick={() => {
+                        setEvaluatorChoice("ai");
+                        setEvaluator(DEFAULT_EVALUATOR);
+                      }}
+                      style={{
+                        padding: "14px",
+                        borderRadius: "12px",
+                        cursor: "pointer",
+                        background: evaluatorChoice === "ai" ? "rgba(99, 102, 241, 0.12)" : "rgba(255, 255, 255, 0.02)",
+                        border: evaluatorChoice === "ai" ? "1.5px solid var(--primary)" : "1px solid var(--border-color)",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <span style={{ fontSize: "1.1rem" }}>🤖</span>
+                          <span style={{ fontWeight: 700, fontSize: "0.9rem", color: evaluatorChoice === "ai" ? "var(--primary)" : "var(--text-primary)" }}>
+                            Handshake AI Agent
+                          </span>
+                        </div>
+                        <span style={{ fontSize: "0.68rem", padding: "2px 7px", borderRadius: "10px", background: "rgba(16, 185, 129, 0.15)", color: "var(--success)", fontWeight: 700 }}>
+                          Recommended
+                        </span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: "0.76rem", color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                        Autonomous AI Vision evaluation. Verifies deliverables against specifications and releases escrow automatically.
+                      </p>
+                    </div>
+
+                    <div
+                      onClick={() => {
+                        setEvaluatorChoice("self");
+                        if (address) setEvaluator(address);
+                      }}
+                      style={{
+                        padding: "14px",
+                        borderRadius: "12px",
+                        cursor: "pointer",
+                        background: evaluatorChoice === "self" ? "rgba(99, 102, 241, 0.12)" : "rgba(255, 255, 255, 0.02)",
+                        border: evaluatorChoice === "self" ? "1.5px solid var(--primary)" : "1px solid var(--border-color)",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
+                        <span style={{ fontSize: "1.1rem" }}>👤</span>
+                        <span style={{ fontWeight: 700, fontSize: "0.9rem", color: evaluatorChoice === "self" ? "var(--primary)" : "var(--text-primary)" }}>
+                          Client Manual Approval
+                        </span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: "0.76rem", color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                        You manually review deliverables and sign the onchain release transaction yourself.
+                      </p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div style={{
+                  padding: "14px",
+                  borderRadius: "12px",
+                  background: "rgba(99, 102, 241, 0.08)",
+                  border: "1px solid rgba(99, 102, 241, 0.2)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px"
+                }}>
+                  <div style={{ fontSize: "1.5rem" }}>🤖</div>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span style={{ fontWeight: 700, fontSize: "0.88rem", color: "var(--text-primary)" }}>
+                        Arbitration: Handshake AI Agent
+                      </span>
+                      <span style={{ fontSize: "0.68rem", padding: "2px 6px", borderRadius: "8px", background: "rgba(16, 185, 129, 0.15)", color: "var(--success)", fontWeight: 700 }}>
+                        Autonomous
                       </span>
                     </div>
-                    <span style={{ fontSize: "0.68rem", padding: "2px 7px", borderRadius: "10px", background: "rgba(16, 185, 129, 0.15)", color: "var(--success)", fontWeight: 700 }}>
-                      Recommended
-                    </span>
+                    <p style={{ margin: "2px 0 0", fontSize: "0.76rem", color: "var(--text-secondary)", lineHeight: 1.35 }}>
+                      Your work will be verified by the autonomous AI evaluator to guarantee fair, instant payout release upon deliverable verification.
+                    </p>
                   </div>
-                  <p style={{ margin: 0, fontSize: "0.76rem", color: "var(--text-secondary)", lineHeight: 1.4 }}>
-                    Autonomous AI evaluation. Analyzes deliverables with computer vision and triggers instant on-chain release.
-                  </p>
-                </div>
-
-                <div
-                  onClick={() => {
-                    setEvaluatorChoice("self");
-                    if (address) setEvaluator(address);
-                  }}
-                  style={{
-                    padding: "14px",
-                    borderRadius: "12px",
-                    cursor: "pointer",
-                    background: evaluatorChoice === "self" ? "rgba(99, 102, 241, 0.12)" : "rgba(255, 255, 255, 0.02)",
-                    border: evaluatorChoice === "self" ? "1.5px solid var(--primary)" : "1px solid var(--border-color)",
-                    transition: "all 0.2s ease",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-                    <span style={{ fontSize: "1.1rem" }}>👤</span>
-                    <span style={{ fontWeight: 700, fontSize: "0.9rem", color: evaluatorChoice === "self" ? "var(--primary)" : "var(--text-primary)" }}>
-                      Client Manual Approval
-                    </span>
-                  </div>
-                  <p style={{ margin: 0, fontSize: "0.76rem", color: "var(--text-secondary)", lineHeight: 1.4 }}>
-                    No automated AI evaluation. You personally review the seller's deliverable and sign the release transaction.
-                  </p>
-                </div>
-              </div>
-
-              {showCustomEvaluator && (
-                <div style={{ marginTop: "12px", padding: "12px", background: "rgba(255, 255, 255, 0.02)", borderRadius: "8px", border: "1px solid var(--border-color)" }}>
-                  <label htmlFor="customEvaluator" style={{ fontSize: "0.78rem", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>
-                    Custom Arbitrator Address (Advanced)
-                  </label>
-                  <input
-                    id="customEvaluator"
-                    type="text"
-                    placeholder="0x..."
-                    value={evaluator}
-                    onChange={(e) => {
-                      setEvaluator(e.target.value);
-                      setEvaluatorChoice("custom");
-                    }}
-                    style={{ fontSize: "0.85rem" }}
-                  />
                 </div>
               )}
             </div>
