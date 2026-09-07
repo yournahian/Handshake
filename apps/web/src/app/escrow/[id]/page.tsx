@@ -16,7 +16,7 @@ import { ReviewModal } from "@/components/ReviewModal";
 import { EscrowChatBidding } from "@/components/EscrowChatBidding";
 
 
-const DEFAULT_EVALUATOR = process.env.NEXT_PUBLIC_BOT_WALLET_ADDRESS || "0x546c8C7A9d3Db29eb0c194Da0c72631F8a717b00";
+const DEFAULT_EVALUATOR = process.env.NEXT_PUBLIC_BOT_WALLET_ADDRESS || "0x54190a788EEf66d9AbddcF7d135B09B4D2b72F3A";
 
 export default function EscrowDetail() {
   const { id } = useParams();
@@ -1392,7 +1392,7 @@ export default function EscrowDetail() {
         </div>
 
         {/* Roles Dashboard */}
-        <div className="escrow-roles-grid" style={{ display: "grid", gap: "16px" }}>
+        <div className="escrow-roles-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
           <div style={{ background: "rgba(255, 255, 255, 0.02)", border: "1px solid var(--border-color)", borderRadius: "12px", padding: "16px" }}>
             <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>Client / Buyer</span>
             <div style={{ fontFamily: "Space Grotesk", fontSize: "0.95rem", marginTop: "4px", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -1403,6 +1403,23 @@ export default function EscrowDetail() {
             <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>Seller / Provider</span>
             <div style={{ fontFamily: "Space Grotesk", fontSize: "0.95rem", marginTop: "4px", overflow: "hidden", textOverflow: "ellipsis" }}>
               {provider} {isProvider && <span style={{ color: "var(--secondary)" }}>(You)</span>}
+            </div>
+          </div>
+          <div style={{ background: "rgba(255, 255, 255, 0.02)", border: "1px solid var(--border-color)", borderRadius: "12px", padding: "16px" }}>
+            <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>Escrow Arbiter</span>
+            <div style={{ fontFamily: "Space Grotesk", fontSize: "0.95rem", marginTop: "4px", display: "flex", alignItems: "center", gap: "6px" }}>
+              {(!evaluator || evaluator.toLowerCase() === DEFAULT_EVALUATOR.toLowerCase() || evaluator.toLowerCase() === "0x54190a788eef66d9abddcf7d135b09b4d2b72f3a") ? (
+                <>
+                  <span style={{ fontWeight: 600, color: "var(--primary)" }}>🤖 Handshake AI Agent</span>
+                  <span style={{ fontSize: "0.68rem", padding: "1px 6px", borderRadius: "8px", background: "rgba(16, 185, 129, 0.15)", color: "var(--success)", fontWeight: 700 }}>
+                    Autonomous
+                  </span>
+                </>
+              ) : evaluator.toLowerCase() === client?.toLowerCase() ? (
+                <span>👤 Client Manual</span>
+              ) : (
+                <span>{evaluator.slice(0, 6)}...{evaluator.slice(-4)}</span>
+              )}
             </div>
           </div>
         </div>

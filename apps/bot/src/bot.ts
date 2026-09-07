@@ -29,8 +29,8 @@ if (!token) {
 }
 const webAppUrl = process.env.NEXT_PUBLIC_WEB_APP_URL || "http://localhost:3000";
 
-// Print bot wallet address on startup so it can be set as the AI Evaluator in escrow contracts
-console.log("🤖 Bot Wallet Address (use as AI Evaluator):", account.address);
+// Autonomous AI Evaluator status
+console.log("🤖 Handshake AI Agent (Autonomous Evaluator): Ready");
 
 // Initialize Bot
 const bot = new TelegramBot(token, { polling: true });
