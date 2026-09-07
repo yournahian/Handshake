@@ -11,9 +11,9 @@
  * It hides the HoverFooter in TG mode (handled via globals.css data-tg selector).
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Home, ShieldCheck, QrCode, Landmark, Globe, Handshake } from "lucide-react";
 import { HeaderWallet } from "@/components/HeaderWallet";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -26,8 +26,9 @@ const NAV_TABS = [
   { href: "/escrow/board",  label: "Board",   icon: Globe },
 ];
 
-export function MobileNav() {
+function MobileNavContent() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -36,8 +37,22 @@ export function MobileNav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const typeParam = searchParams.get("type");
+  const isPhysical = pathname.startsWith("/meetup") || (pathname.startsWith("/escrow/create") && typeParam === "physical");
+  const isBoard = pathname.startsWith("/escrow/board");
+
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
+    if (href === "/meetup") {
+      return isPhysical;
+    }
+    if (href === "/escrow/board") {
+      return isBoard;
+    }
+    if (href === "/escrow") {
+      if (isBoard || isPhysical) return false;
+      return pathname.startsWith("/escrow");
+    }
     return pathname.startsWith(href);
   };
 
@@ -113,5 +128,13 @@ export function MobileNav() {
         })}
       </nav>
     </>
+  );
+}
+
+export function MobileNav() {
+  return (
+    <Suspense fallback={null}>
+      <MobileNavContent />
+    </Suspense>
   );
 }
