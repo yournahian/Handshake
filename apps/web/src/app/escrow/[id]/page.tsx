@@ -428,6 +428,10 @@ export default function EscrowDetail() {
   }, [description, budget, client, provider, isPhysical, jobId]);
 
 
+  const getPhysicalMeetupCode = () => {
+    return submission?.fileUrl || (typeof window !== "undefined" ? localStorage.getItem(`arc_physical_code_${jobId}`) : null) || "";
+  };
+
   const fetchSubmission = async () => {
     // 1. Try to fetch from Supabase directly first if available
     const hasSupabase = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -775,7 +779,7 @@ export default function EscrowDetail() {
             job_id: Number(jobId),
             status: "Negotiation",
             result: "Updating budget...",
-            file_url: isPhysical ? (submission?.fileUrl || "") : "",
+            file_url: isPhysical ? getPhysicalMeetupCode() : "",
             file_name: isPhysical ? "meetup_code" : "",
             source: "web"
           });
@@ -811,7 +815,7 @@ export default function EscrowDetail() {
             job_id: Number(jobId),
             status: "Open",
             result: "",
-            file_url: isPhysical ? (submission?.fileUrl || "") : "",
+            file_url: isPhysical ? getPhysicalMeetupCode() : "",
             file_name: isPhysical ? "meetup_code" : "",
             source: "web"
           });
@@ -858,7 +862,7 @@ export default function EscrowDetail() {
             job_id: Number(jobId),
             status: "Negotiation",
             result: "rejected",
-            file_url: isPhysical ? (submission?.fileUrl || "") : "",
+            file_url: isPhysical ? getPhysicalMeetupCode() : "",
             file_name: isPhysical ? "meetup_code" : "",
             source: "web"
           });
@@ -889,7 +893,7 @@ export default function EscrowDetail() {
         const isPhysical = qrConfirmationHash && qrConfirmationHash !== "0x0000000000000000000000000000000000000000000000000000000000000000";
         const { error } = await supabase.from("escrow_submissions").upsert({
           job_id: Number(jobId),
-          file_url: isPhysical ? (submission?.fileUrl || "") : "",
+          file_url: isPhysical ? getPhysicalMeetupCode() : "",
           file_name: isPhysical ? "meetup_code" : "",
           status: "Negotiation",
           result: `Counter-offer: ${proposedVal} USDC`,
@@ -915,7 +919,7 @@ export default function EscrowDetail() {
         const isPhysical = qrConfirmationHash && qrConfirmationHash !== "0x0000000000000000000000000000000000000000000000000000000000000000";
         await supabase.from("escrow_submissions").upsert({
           job_id: Number(jobId),
-          file_url: isPhysical ? (submission?.fileUrl || "") : "",
+          file_url: isPhysical ? getPhysicalMeetupCode() : "",
           file_name: isPhysical ? "meetup_code" : "",
           status: "Negotiation",
           result: "Buyer rejected proposed budget.",
@@ -1281,7 +1285,7 @@ export default function EscrowDetail() {
             job_id: Number(jobId),
             status: "Disputed",
             result: `Job disputed by ${disputerRole}. Waiting for arbitrator verdict. Tx Hash: ${txHash}`,
-            file_url: isPhysical ? (submission?.fileUrl || "") : "",
+            file_url: isPhysical ? getPhysicalMeetupCode() : "",
             file_name: isPhysical ? "meetup_code" : "",
             source: "web"
           });

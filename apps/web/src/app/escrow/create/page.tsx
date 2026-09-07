@@ -337,8 +337,9 @@ function CreateEscrowContent() {
       }
 
       // If physical escrow and QR word is set, upload the QR code hash
-      if (escrowType === "physical" && qrCodeWord) {
-        const qrHash = keccak256(toHex(qrCodeWord));
+      const cleanQrWord = (qrCodeWord || "").trim() || (escrowType === "physical" ? `meetup-${Math.floor(1000 + Math.random() * 9000)}` : "");
+      if (escrowType === "physical" && cleanQrWord) {
+        const qrHash = keccak256(toHex(cleanQrWord));
         const qrTxHash = await writeContract("setQrConfirmation", [createdJobId, qrHash]);
         if (qrTxHash && qrTxHash !== "0x" && publicClient) {
           const qrReceipt = await waitForReceipt(publicClient, qrTxHash);
@@ -347,7 +348,7 @@ function CreateEscrowContent() {
 
         // Save to localStorage fallback
         try {
-          localStorage.setItem(`arc_physical_code_${createdJobId}`, qrCodeWord);
+          localStorage.setItem(`arc_physical_code_${createdJobId}`, cleanQrWord);
         } catch (err) {
           console.warn("Failed to write physical code to localStorage:", err);
         }
@@ -384,7 +385,7 @@ function CreateEscrowContent() {
           const isPhysical = escrowType === "physical";
           await supabase.from("escrow_submissions").upsert({
             job_id: Number(createdJobId),
-            file_url: isPhysical ? (qrCodeWord || "") : "",
+            file_url: isPhysical ? cleanQrWord : "",
             file_name: isPhysical ? "meetup_code" : "",
             status: "Negotiation",
             result: budget ? `Proposed budget: ${budget} USDC` : "Physical meetup escrow initialized",
