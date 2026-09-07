@@ -8,7 +8,7 @@ import {
   User, Wallet, Landmark, ShieldCheck, History,
   TrendingUp, Award, Layers, ArrowUpRight, ArrowDownLeft,
   Activity, Settings, Plus, RefreshCw, Calendar, ExternalLink,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Copy
 } from "lucide-react";
 import { useWallet } from "@/hooks/useWallet";
 import { useCircleWallet } from "@/components/CircleWalletContext";
@@ -535,17 +535,17 @@ export default function ProfilePage() {
   }
 
   return (
-    <div style={{ maxWidth: "1200px", margin: "30px auto", padding: "0 16px", display: "flex", flexDirection: "column", gap: "28px" }}>
+    <div style={{ maxWidth: "1200px", margin: "30px auto", padding: "0 16px 100px 16px", display: "flex", flexDirection: "column", gap: "28px" }}>
       {/* Themed dialog portal */}
       {promptNode}
       
       {/* Header Banner */}
       <div className="glass-card responsive-card-padding" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px", background: "linear-gradient(135deg, rgba(99,102,241,0.06), rgba(168,85,247,0.03))", position: "relative", overflow: "hidden" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          <div style={{ background: "linear-gradient(135deg, #818cf8, #8b5cf6)", width: "60px", height: "60px", borderRadius: "16px", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 20px rgba(99,102,241,0.25)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+          <div style={{ background: "linear-gradient(135deg, #818cf8, #8b5cf6)", width: "60px", height: "60px", borderRadius: "16px", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 20px rgba(99,102,241,0.25)", flexShrink: 0 }}>
             <User size={30} style={{ color: "#fff" }} />
           </div>
-          <div>
+          <div style={{ minWidth: "220px", flex: 1 }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
               <h1 style={{ fontSize: "1.8rem", fontWeight: 800, margin: 0 }}>@{username}</h1>
               {reputation && (
@@ -600,12 +600,35 @@ export default function ProfilePage() {
                 Edit Username
               </button>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "6px" }}>
-              <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-                Wallet: <code style={{ color: "var(--primary)", fontWeight: 600 }}>{address ? `${address.slice(0, 10)}…${address.slice(-8)}` : "Not connected"}</code>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "6px", flexWrap: "wrap" }}>
+              <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--text-secondary)", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                <span>Wallet:</span>
+                <code 
+                  onClick={() => {
+                    if (address) {
+                      navigator.clipboard.writeText(address);
+                      alert("Address copied to clipboard!");
+                    }
+                  }}
+                  title={address ? `Click to copy: ${address}` : ""}
+                  style={{ 
+                    color: "var(--primary)", 
+                    fontWeight: 600, 
+                    background: "rgba(255,255,255,0.06)", 
+                    padding: "2px 6px", 
+                    borderRadius: "4px",
+                    cursor: address ? "pointer" : "default",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px"
+                  }}
+                >
+                  {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "Not connected"}
+                  {address && <Copy size={11} style={{ opacity: 0.7 }} />}
+                </code>
               </p>
               {reputation && reputation.reviewCount > 0 && (
-                <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", display: "inline-flex", alignItems: "center", gap: "2px" }}>
+                <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", display: "inline-flex", alignItems: "center", gap: "4px" }}>
                   ⭐ {reputation.avgRating} ({reputation.reviewCount} reviews)
                 </span>
               )}

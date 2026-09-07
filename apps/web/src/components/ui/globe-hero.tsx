@@ -67,7 +67,7 @@ const DotGlobeHero = React.forwardRef<
         {children}
       </div>
       
-      <div className="absolute inset-0 z-0 pointer-events-none">
+      <div className="absolute inset-0 z-0 pointer-events-none opacity-20 sm:opacity-80 transition-opacity duration-700">
         <Canvas>
           <PerspectiveCamera makeDefault position={[0, 0, 3]} fov={75} />
           <ambientLight intensity={0.5} />

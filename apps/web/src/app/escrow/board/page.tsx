@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { publicClient } from "@/lib/publicClient";
 import { escrowAbi, DEPLOYED_ESCROW_ADDRESS } from "@/lib/contracts";
 import { formatUnits } from "viem";
-import { Search, Filter, ExternalLink, ArrowRight, Shield, MapPin, Zap, Plus, RefreshCw, MessageSquare, Briefcase, Edit2, Trash2, UserCheck } from "lucide-react";
+import { Search, Filter, ExternalLink, ArrowRight, Shield, MapPin, Zap, Plus, RefreshCw, MessageSquare, Briefcase, Edit2, Trash2, UserCheck, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useWallet } from "@/hooks/useWallet";
 
@@ -314,7 +314,7 @@ export default function EscrowBoardPage() {
   const filteredItems = getFilteredItems();
 
   return (
-    <div style={{ maxWidth: "900px", margin: "30px auto", padding: "0 16px", display: "flex", flexDirection: "column", gap: "24px" }}>
+    <div style={{ maxWidth: "900px", margin: "30px auto", padding: "0 16px 100px 16px", display: "flex", flexDirection: "column", gap: "24px" }}>
       
       {/* Header */}
       <div className="glass-card" style={{ padding: "24px", background: "linear-gradient(135deg, rgba(99,102,241,0.06), rgba(168,85,247,0.03))", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
@@ -344,9 +344,69 @@ export default function EscrowBoardPage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div style={{
-        display: "flex",
+      {/* Mobile Category Dropdown Menu */}
+      <div className="sm:hidden" style={{ width: "100%" }}>
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: "6px",
+          padding: "0 2px"
+        }}>
+          <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Category Selector
+          </span>
+          <span style={{ fontSize: "0.72rem", color: "var(--primary)", fontWeight: 600 }}>
+            {activeTab === "onchain" && `On-Chain (${escrows.length})`}
+            {activeTab === "p2p" && `Marketplace (${publicP2pListings.length})`}
+            {activeTab === "my_listings" && `My Listings (${myListings.length})`}
+          </span>
+        </div>
+        <div style={{
+          position: "relative",
+          background: "rgba(255, 255, 255, 0.04)",
+          border: "1px solid var(--border-color)",
+          borderRadius: "12px",
+          display: "flex",
+          alignItems: "center",
+          height: "48px",
+          padding: "0 14px",
+          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)"
+        }}>
+          <select
+            value={activeTab}
+            onChange={(e) => setActiveTab(e.target.value as any)}
+            style={{
+              width: "100%",
+              height: "100%",
+              background: "transparent",
+              border: "none",
+              color: "#ffffff",
+              fontSize: "0.92rem",
+              fontWeight: 600,
+              cursor: "pointer",
+              outline: "none",
+              appearance: "none",
+              WebkitAppearance: "none",
+              paddingRight: "28px"
+            }}
+          >
+            <option value="onchain" style={{ background: "#18181b", color: "#fff" }}>
+              ⚡ On-Chain Negotiating ({escrows.length})
+            </option>
+            <option value="p2p" style={{ background: "#18181b", color: "#fff" }}>
+              🌐 Freelance Marketplace ({publicP2pListings.length})
+            </option>
+            <option value="my_listings" style={{ background: "#18181b", color: "#fff" }}>
+              👤 My Listings ({myListings.length})
+            </option>
+          </select>
+          <ChevronDown size={18} style={{ position: "absolute", right: "14px", pointerEvents: "none", color: "var(--primary)" }} />
+        </div>
+      </div>
+
+      {/* Desktop Tabs */}
+      <div className="hidden sm:flex" style={{
         borderBottom: "1px solid var(--border-color)",
         gap: "12px",
         overflowX: "auto",

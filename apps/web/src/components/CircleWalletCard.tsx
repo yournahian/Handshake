@@ -534,28 +534,40 @@ export function CircleWalletCard({ onTransactionSuccess }: { onTransactionSucces
           }}>
             <ShieldCheck size={18} style={{ color: "#818cf8" }} />
           </div>
-          <div>
+          <div style={{ minWidth: 0, flex: 1 }}>
             <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 700 }}>Circle Smart Wallet</h3>
-            <div style={{ display: "flex", gap: "6px", alignItems: "center", marginTop: "2px" }}>
+            <div style={{ display: "flex", gap: "6px", alignItems: "center", marginTop: "2px", flexWrap: "wrap" }}>
               <span style={{
                 fontSize: "0.7rem", padding: "2px 8px", borderRadius: "20px",
                 background: "rgba(16,185,129,0.1)", color: "#10b981",
                 border: "1px solid rgba(16,185,129,0.2)", fontWeight: 600,
+                flexShrink: 0
               }}>
                 {wallet.state === "LIVE" ? "● Active" : wallet.state}
               </span>
               {email && (
-                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }} title={email}>
+                <span 
+                  style={{ 
+                    fontSize: "0.75rem", 
+                    color: "var(--text-muted)",
+                    maxWidth: "150px",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    display: "inline-block"
+                  }} 
+                  title={email}
+                >
                   ({email})
                 </span>
               )}
             </div>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
           <button
             onClick={refreshWallet}
-            style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", display: "flex" }}
+            style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", display: "flex", padding: "4px" }}
             title="Refresh"
           >
             <RefreshCw size={16} />
@@ -564,15 +576,17 @@ export function CircleWalletCard({ onTransactionSuccess }: { onTransactionSucces
             <button
               onClick={logout}
               style={{
-                background: "none",
-                border: "none",
-                color: "rgba(239, 68, 68, 0.7)",
+                background: "rgba(239, 68, 68, 0.08)",
+                border: "1px solid rgba(239, 68, 68, 0.2)",
+                color: "#ef4444",
                 cursor: "pointer",
                 fontSize: "0.75rem",
                 fontWeight: 600,
-                padding: "2px 6px",
-                borderRadius: "4px",
-                transition: "color 0.2s",
+                padding: "3px 8px",
+                borderRadius: "6px",
+                transition: "all 0.2s",
+                whiteSpace: "nowrap",
+                flexShrink: 0
               }}
               title="Log Out"
             >

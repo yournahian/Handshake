@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { formatUnits, keccak256, toHex, encodeFunctionData } from "viem";
 import { escrowAbi, DEPLOYED_ESCROW_ADDRESS } from "@/lib/contracts";
-import { QrCode, Camera, ShieldCheck, AlertCircle, Copy, Check, CheckCircle2, ArrowRight, KeyRound, Sparkles, RefreshCw } from "lucide-react";
+import { QrCode, Camera, ShieldCheck, AlertCircle, Copy, Check, CheckCircle2, ArrowRight, KeyRound, Sparkles, RefreshCw, ExternalLink } from "lucide-react";
 import confetti from "canvas-confetti";
 import { supabase } from "@/lib/supabase";
 import { useTgBackButton, isTelegram, getTgWebApp } from "@/lib/telegram";
@@ -38,6 +38,7 @@ export default function MeetupDetail() {
   const jobId = isNumeric ? BigInt(id as string) : 0n;
 
   const [copied, setCopied] = useState(false);
+  const [copiedTx, setCopiedTx] = useState(false);
   const [manualCode, setManualCode] = useState("");
   const [isTxPending, setIsTxPending] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
@@ -701,16 +702,71 @@ export default function MeetupDetail() {
                   background: "rgba(255, 255, 255, 0.02)",
                   border: "1px solid var(--border-color)",
                   borderRadius: "12px",
-                  padding: "12px 16px",
+                  padding: "14px 16px",
                   width: "100%",
                   textAlign: "left",
-                  marginBottom: "8px"
+                  marginBottom: "12px",
+                  boxSizing: "border-box"
                 }}>
-                  <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Transaction Hash</span>
-                  <div style={{ fontFamily: "Space Grotesk", fontSize: "0.85rem", marginTop: "4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    <a href={`https://testnet.arcscan.app/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "underline" }}>
-                      {txHash}
-                    </a>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px", gap: "8px", flexWrap: "wrap" }}>
+                    <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: 600 }}>Settlement Transaction Hash</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(txHash);
+                          setCopiedTx(true);
+                          setTimeout(() => setCopiedTx(false), 2000);
+                        }}
+                        style={{
+                          background: "rgba(255, 255, 255, 0.06)",
+                          border: "1px solid var(--border-color)",
+                          color: copiedTx ? "var(--success)" : "var(--text-secondary)",
+                          borderRadius: "6px",
+                          padding: "3px 8px",
+                          fontSize: "0.72rem",
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px"
+                        }}
+                      >
+                        {copiedTx ? <Check size={12} /> : <Copy size={12} />}
+                        {copiedTx ? "Copied" : "Copy"}
+                      </button>
+                      <a
+                        href={`https://testnet.arcscan.app/tx/${txHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          background: "rgba(99, 102, 241, 0.1)",
+                          border: "1px solid rgba(99, 102, 241, 0.25)",
+                          color: "var(--primary)",
+                          borderRadius: "6px",
+                          padding: "3px 8px",
+                          fontSize: "0.72rem",
+                          textDecoration: "none",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px"
+                        }}
+                      >
+                        Explorer <ExternalLink size={12} />
+                      </a>
+                    </div>
+                  </div>
+                  <div style={{
+                    background: "rgba(0, 0, 0, 0.35)",
+                    border: "1px solid rgba(255, 255, 255, 0.06)",
+                    borderRadius: "8px",
+                    padding: "10px 12px",
+                    fontFamily: "monospace",
+                    fontSize: "0.8rem",
+                    lineHeight: "1.5",
+                    wordBreak: "break-all",
+                    color: "var(--primary)",
+                    userSelect: "all"
+                  }}>
+                    {txHash}
                   </div>
                 </div>
               );

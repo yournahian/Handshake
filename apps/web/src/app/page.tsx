@@ -59,7 +59,7 @@ export default function Home() {
   };
 
   return (
-    <div className="w-full bg-background text-foreground flex flex-col gap-16 sm:gap-28 pb-4 sm:pb-20 overflow-hidden">
+    <div className="w-full bg-background text-foreground flex flex-col gap-16 sm:gap-28 pb-28 sm:pb-20 overflow-hidden">
       
       {/* Hero Section using DotGlobeHero */}
       <DotGlobeHero
@@ -90,7 +90,7 @@ export default function Home() {
               <div className="w-1.5 h-1.5 bg-primary rounded-full animate-ping animation-delay-500" />
             </motion.div>
             
-            <div className="space-y-4 mb-8 sm:mb-6">
+            <div className="space-y-3 mb-6 sm:mb-8">
               <motion.h1 
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -98,36 +98,27 @@ export default function Home() {
                 className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[1.1] sm:leading-[0.9] select-none"
                 style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
               >
-                <span className="block font-light text-foreground/75 mb-2 text-xl sm:text-4xl lg:text-6xl">
+                <span className="block font-light text-foreground/80 mb-2 text-xl sm:text-4xl lg:text-6xl tracking-tight">
                   Build Real-World
                 </span>
-                <span className="block relative mt-4">
+                <span className="block relative mt-2 sm:mt-4">
                   <span 
-                    className="font-black relative z-10 uppercase select-none tracking-tighter"
-                    style={{
-                      WebkitTextStroke: "1.5px hsl(var(--primary))",
-                      WebkitTextFillColor: "transparent",
-                      color: "transparent",
-                    }}
+                    className="font-black relative z-10 uppercase select-none tracking-tighter bg-gradient-to-r from-white via-indigo-100 to-indigo-200 bg-clip-text text-transparent drop-shadow-[0_2px_16px_rgba(255,255,255,0.25)]"
                   >
                     Finance Onchain
                   </span>
                   <div 
-                    className="absolute inset-0 font-black blur-xl opacity-35 scale-105 uppercase select-none tracking-tighter"
-                    style={{
-                      WebkitTextStroke: "1.5px hsla(var(--primary), 0.6)",
-                      WebkitTextFillColor: "transparent",
-                      color: "transparent",
-                    }}
+                    className="absolute inset-0 font-black blur-2xl opacity-30 uppercase select-none tracking-tighter text-primary pointer-events-none"
+                    aria-hidden="true"
                   >
                     Finance Onchain
                   </div>
-                  {/* Animated underline bar */}
+                  {/* Glowing subtle accent line */}
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: "100%" }}
-                    transition={{ duration: 1.5, delay: 1.2, ease: "easeOut" }}
-                    className="absolute -bottom-3 sm:-bottom-5 left-0 h-[3px] sm:h-[6px] bg-gradient-to-r from-white via-white/90 to-white/10 rounded-full shadow-[0_0_12px_3px_rgba(255,255,255,0.4)]"
+                    transition={{ duration: 1.2, delay: 0.8, ease: "easeOut" }}
+                    className="mx-auto mt-3 sm:mt-5 h-[2px] sm:h-[3px] max-w-xs sm:max-w-md bg-gradient-to-r from-transparent via-primary/80 to-transparent rounded-full shadow-[0_0_12px_2px_rgba(99,102,241,0.5)]"
                   />
                 </span>
               </motion.h1>
@@ -137,9 +128,9 @@ export default function Home() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.8, delay: 0.6 }}
-              className="max-w-3xl mx-auto space-y-4"
+              className="max-w-3xl mx-auto space-y-4 px-2"
             >
-              <p className="text-base sm:text-lg text-muted-foreground leading-relaxed font-medium">
+              <p className="text-sm sm:text-lg text-muted-foreground leading-relaxed font-medium">
                 Handshake provides secure, trustless escrow templates and joint treasury tools. Manage payments with{" "}
                 <span className="text-foreground font-semibold bg-gradient-to-r from-primary/10 to-primary/5 px-2 py-1 rounded-md border border-primary/10">
                   AI verification, QR codes, and group accountant policies
@@ -148,13 +139,52 @@ export default function Home() {
             </motion.div>
           </motion.div>
 
+          {/* Action CTAs */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.75 }}
+            className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center pt-2 w-full sm:w-auto px-2 sm:px-0 relative z-20"
+          >
+            <Link href="/escrow/create" className="no-underline w-full sm:w-auto">
+              <motion.div
+                whileHover={{ 
+                  scale: 1.03, 
+                  boxShadow: "0 10px 25px rgba(0,0,0,0.2), 0 0 15px hsl(var(--primary) / 0.25)",
+                  y: -1
+                }}
+                whileTap={{ scale: 0.98 }}
+                className="group relative inline-flex items-center justify-center gap-2 w-full sm:w-auto px-7 py-3.5 bg-primary text-primary-foreground rounded-xl font-semibold text-sm shadow-xl transition-all duration-300 overflow-hidden border border-primary/20 cursor-pointer"
+              >
+                <span className="relative z-10 tracking-wider uppercase font-bold">Create Escrow</span>
+                <ArrowRight className="relative z-10 w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+              </motion.div>
+            </Link>
+            
+            <Link href="/treasury" className="no-underline w-full sm:w-auto">
+              <motion.div
+                whileHover={{ 
+                  scale: 1.03, 
+                  borderColor: "hsl(var(--primary) / 0.4)",
+                  backgroundColor: "rgba(255, 255, 255, 0.03)",
+                  y: -1
+                }}
+                whileTap={{ scale: 0.98 }}
+                className="group relative inline-flex items-center justify-center gap-2 w-full sm:w-auto px-7 py-3.5 border border-border/50 rounded-xl font-semibold text-sm transition-all duration-300 backdrop-blur-xl bg-background/30 hover:bg-background/80 shadow-lg cursor-pointer"
+              >
+                <Zap className="relative z-10 w-4 h-4 text-primary group-hover:scale-110 transition-all duration-300" />
+                <span className="relative z-10 tracking-wider uppercase text-foreground font-semibold">Group Pools</span>
+              </motion.div>
+            </Link>
+          </motion.div>
+
           {/* Escrow Search Input Bar inside the Hero */}
           <motion.form 
             onSubmit={handleQuickSearch} 
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.8 }}
-            className="flex w-full max-w-lg bg-card/60 backdrop-blur-xl border border-border/40 rounded-full p-1.5 shadow-2xl mx-auto relative z-20 hover:border-primary/30 transition-all"
+            transition={{ duration: 0.8, delay: 0.9 }}
+            className="flex w-full max-w-md bg-card/60 backdrop-blur-xl border border-border/40 rounded-full p-1.5 shadow-2xl mx-auto relative z-20 hover:border-primary/30 transition-all"
           >
             <input
               type="number"
@@ -169,45 +199,6 @@ export default function Home() {
               Open
             </button>
           </motion.form>
-
-          {/* Action CTAs */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.9 }}
-            className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center pt-2 w-full sm:w-auto px-4 sm:px-0"
-          >
-            <Link href="/escrow/create" className="no-underline w-full sm:w-auto">
-              <motion.div
-                whileHover={{ 
-                  scale: 1.03, 
-                  boxShadow: "0 10px 25px rgba(0,0,0,0.2), 0 0 15px hsl(var(--primary) / 0.25)",
-                  y: -1
-                }}
-                whileTap={{ scale: 0.98 }}
-                className="group relative inline-flex items-center justify-center gap-2 w-full sm:w-auto px-7 py-3.5 bg-primary text-primary-foreground rounded-lg font-semibold text-sm shadow-xl transition-all duration-300 overflow-hidden border border-primary/20 cursor-pointer"
-              >
-                <span className="relative z-10 tracking-wider uppercase">Create Escrow</span>
-                <ArrowRight className="relative z-10 w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
-              </motion.div>
-            </Link>
-            
-            <Link href="/treasury" className="no-underline w-full sm:w-auto">
-              <motion.div
-                whileHover={{ 
-                  scale: 1.03,
-                  borderColor: "hsl(var(--primary) / 0.4)",
-                  backgroundColor: "rgba(255, 255, 255, 0.03)",
-                  y: -1
-                }}
-                whileTap={{ scale: 0.98 }}
-                className="group relative inline-flex items-center justify-center gap-2 w-full sm:w-auto px-7 py-3.5 border border-border/50 rounded-lg font-semibold text-sm transition-all duration-300 backdrop-blur-xl bg-background/30 hover:bg-background/80 shadow-lg cursor-pointer"
-              >
-                <Zap className="relative z-10 w-4 h-4 text-primary group-hover:scale-110 transition-all duration-300" />
-                <span className="relative z-10 tracking-wider uppercase text-foreground">Group Pools</span>
-              </motion.div>
-            </Link>
-          </motion.div>
         </div>
       </DotGlobeHero>
 
