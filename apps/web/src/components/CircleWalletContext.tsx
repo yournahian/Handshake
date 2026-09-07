@@ -354,37 +354,61 @@ export function CircleWalletProvider({ children }: { children: React.ReactNode }
       return sdkHash;
     }
 
-    // 2. If the SDK didn't return a hash, wait a few seconds for Circle to index,
-    //    then poll the wallet transaction list looking for our challengeId.
-    //    Circle often takes 8-15s, so give it a 3s head-start then poll moderately.
-    const MAX_POLL = 20;        // ~23s total with 1s intervals (~3s delay + 20 attempts)
-    const POLL_DELAY = 1000;
+    // 2. Poll the specific transaction endpoint directly by txId (fast & targeted)
+    if (data.txId) {
+      const MAX_POLL = 15;
+      const POLL_DELAY = 1000;
 
-    await new Promise((r) => setTimeout(r, 3000)); // initial buffer for Circle indexing
-
-    for (let i = 0; i < MAX_POLL; i++) {
-      try {
-        const listRes = await fetch(`/api/circle/transactions?walletId=${wallet.id}&userToken=${encodeURIComponent(userToken)}`);
-        if (listRes.ok) {
-          const listData = await listRes.json();
-          const list = listData.transactions || [];
-          const matchingTx = list.find((t: any) => t.challengeId === data.challengeId);
-          if (matchingTx) {
-            const txHash = matchingTx.txHash;
-            if (txHash && txHash !== "0x" && txHash.length > 10) {
-              console.log("[executeContractCall] Found tx hash from history:", txHash);
-              return txHash as string;
+      for (let i = 0; i < MAX_POLL; i++) {
+        try {
+          const detailRes = await fetch(
+            `/api/circle/transactions/${data.txId}?userToken=${encodeURIComponent(userToken)}`
+          );
+          if (detailRes.ok) {
+            const detailData = await detailRes.json();
+            const tx = detailData.transaction;
+            if (tx) {
+              if (tx.state === "FAILED" || tx.state === "CANCELLED") {
+                throw new Error(tx.errorReason || `Transaction ${tx.state.toLowerCase()} on Circle relayer`);
+              }
+              const txHash = tx.txHash;
+              if (txHash && txHash !== "0x" && txHash.length > 10) {
+                console.log("[executeContractCall] Found tx hash via transaction ID:", txHash);
+                return txHash as string;
+              }
             }
           }
+        } catch (e: any) {
+          if (e.message && (e.message.includes("failed") || e.message.includes("CANCELLED") || e.message.includes("reverted"))) {
+            throw e;
+          }
+          console.warn("[executeContractCall] Error polling tx detail:", e);
         }
-      } catch (e) {
-        console.warn("Error polling transactions history:", e);
+        await new Promise((r) => setTimeout(r, POLL_DELAY));
       }
-      await new Promise((r) => setTimeout(r, POLL_DELAY));
+    }
+
+    // 3. Fallback: check transaction list matching either id or challengeId
+    try {
+      const listRes = await fetch(`/api/circle/transactions?walletId=${wallet.id}&userToken=${encodeURIComponent(userToken)}`);
+      if (listRes.ok) {
+        const listData = await listRes.json();
+        const list = listData.transactions || [];
+        const matchingTx = list.find((t: any) => 
+          (data.txId && t.id === data.txId) ||
+          (data.challengeId && (t.challengeId === data.challengeId || t.id === data.challengeId))
+        );
+        if (matchingTx?.txHash && matchingTx.txHash !== "0x" && matchingTx.txHash.length > 10) {
+          console.log("[executeContractCall] Found tx hash from list fallback:", matchingTx.txHash);
+          return matchingTx.txHash as string;
+        }
+      }
+    } catch (e) {
+      console.warn("Error in fallback transaction list check:", e);
     }
 
     console.warn("[executeContractCall] Could not obtain tx hash after polling — returning fallback");
-    return sdkHash;
+    return sdkHash || ("0x" as string);
   }, [wallet, userToken, executeChallenge]);
 
   // ── Transfer USDC out to an external wallet ──────────────────────────────

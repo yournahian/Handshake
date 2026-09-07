@@ -12,7 +12,7 @@ export function getAISettings(): AISettings {
   const defaultSettings: AISettings = {
     aiProvider: "gemini",
     apiKey: process.env.GEMINI_API_KEY?.trim() || "",
-    modelName: "gemini-1.5-flash",
+    modelName: "gemini-3.6-flash",
     customBaseUrl: "",
   };
 
@@ -98,7 +98,7 @@ export async function callAI(prompt: string): Promise<string> {
 
   // Default to Gemini API
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${modelName || "gemini-1.5-flash"}:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${modelName || "gemini-3.6-flash"}:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },

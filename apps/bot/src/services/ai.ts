@@ -13,8 +13,8 @@ interface AIRequest {
 }
 
 // ─── Gemini HTTP Client ──────────────────────────────────────────────────────
-async function callGemini(apiKey: string, prompt: string, image?: { base64: string; mimeType: string }): Promise<string> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+async function callGemini(apiKey: string, prompt: string, image?: { base64: string; mimeType: string }, model: string = "gemini-3.6-flash"): Promise<string> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
   const parts: any[] = [{ text: prompt }];
   if (image) {
     parts.push({
@@ -95,16 +95,16 @@ async function callOpenAICompatible(
 export async function callAIWithFailover(req: AIRequest): Promise<{ text: string; provider: string }> {
   const configs = [
     {
-      name: "Gemini Primary",
+      name: "Gemini Primary (3.6 Flash)",
       type: "gemini",
       key: process.env.GEMINI_API_KEY,
-      model: "gemini-1.5-flash"
+      model: "gemini-3.6-flash"
     },
     {
-      name: "Gemini Fallback",
+      name: "Gemini Fallback (Flash Latest)",
       type: "gemini",
-      key: process.env.GEMINI_API_KEY_FALLBACK,
-      model: "gemini-1.5-flash"
+      key: process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY_FALLBACK,
+      model: "gemini-flash-latest"
     },
     {
       name: "OpenAI",
@@ -114,25 +114,11 @@ export async function callAIWithFailover(req: AIRequest): Promise<{ text: string
       model: "gpt-4o-mini"
     },
     {
-      name: "Groq Primary",
-      type: "openai-compatible",
-      baseUrl: "https://api.groq.com/openai/v1",
-      key: process.env.GROQ_API_KEY,
-      model: "llama-3.2-11b-vision-preview"
-    },
-    {
-      name: "Groq Fallback",
-      type: "openai-compatible",
-      baseUrl: "https://api.groq.com/openai/v1",
-      key: process.env.GROQ_API_KEY_FALLBACK,
-      model: "llama-3.2-11b-vision-preview"
-    },
-    {
       name: "OpenRouter",
       type: "openai-compatible",
       baseUrl: "https://openrouter.ai/api/v1",
       key: process.env.OPENROUTER_API_KEY,
-      model: "google/gemma-2-9b-it:free"
+      model: "google/gemma-4-31b-it:free"
     }
   ];
 
@@ -145,7 +131,7 @@ export async function callAIWithFailover(req: AIRequest): Promise<{ text: string
       console.log(`[AI Failover Engine] Attempting request using ${config.name}...`);
       let resultText = "";
       if (config.type === "gemini") {
-        resultText = await callGemini(config.key, req.prompt, req.image);
+        resultText = await callGemini(config.key, req.prompt, req.image, config.model);
       } else {
         resultText = await callOpenAICompatible(
           config.baseUrl!,
@@ -345,22 +331,28 @@ export async function verifyDeliverable(
 
     if (fileData) {
       const prompt = `
-You are an autonomous escrow verification agent for a freelance marketplace.
-Your task is to decide whether the uploaded deliverable satisfies the job requirements.
+You are a strict, impartial autonomous escrow verification agent for a freelance marketplace.
+Your job is to protect both the buyer and seller by verifying whether the uploaded deliverable strictly satisfies the required task specifications.
 
-Job Description / Spec:
+Task Specifications:
 "${jobDescription}"
 
 Uploaded File Name: "${fileName}"
 File Extension: ".${fileExtension}"
 
-Instructions:
-1. Look at the uploaded file carefully.
-2. Check if it matches the requirements in the job description (e.g., file type, content, quality).
-3. Respond ONLY with a JSON object in this exact format — no extra text:
+Verification Rules:
+1. Examine the image carefully.
+2. Check EVERY requirement mentioned in the Task Specifications:
+   - Specific objects (e.g., pen, logo, document, website)
+   - Specific colors (e.g., if "blue pen" is requested, a red, black, or green pen MUST be rejected)
+   - Specific text, numbers, or details specified by the buyer
+   - File formats and quality
+3. If the deliverable fails ANY specification (e.g., wrong color, wrong item, blank image, or irrelevant content), set "approved": false.
+4. If it satisfies all specifications, set "approved": true.
+5. Respond ONLY with a JSON object in this exact format:
 {
   "approved": true | false,
-  "reason": "A clear, one-sentence explanation of your verdict."
+  "reason": "Clear explanation of whether the deliverable matches all specifications (mentioning color, object, details)."
 }
 `;
 
@@ -386,7 +378,7 @@ Instructions:
   }
 
   // ─── Heuristic fallback ───────────────────────────────────────────────────
-  console.warn("⚠️ Gemini Vision unavailable — using heuristic file extension check.");
+  console.warn("⚠️ AI Vision unavailable — falling back to safe heuristic inspection.");
 
   const descLower = jobDescription.toLowerCase();
 
@@ -406,7 +398,7 @@ Instructions:
       if (fileExtension !== ext) {
         return {
           isApproved: false,
-          reason: `Job requires a .${ext} file but received a .${fileExtension} file.`,
+          reason: `Task specifies a .${ext} file, but received .${fileExtension}.`,
           usedAI: false,
         };
       }
@@ -414,9 +406,11 @@ Instructions:
     }
   }
 
+  // If AI vision failed, NEVER auto-approve content that requires visual inspection.
+  // Instead, require manual buyer approval so buyer funds are safe.
   return {
-    isApproved: true,
-    reason: "Deliverable file type matches job requirements. (Heuristic check — set GEMINI_API_KEY for full AI verification.)",
+    isApproved: false,
+    reason: "AI vision inspection is temporarily unavailable (valid GEMINI_API_KEY required). Manual buyer approval is required to release escrow.",
     usedAI: false,
   };
 }

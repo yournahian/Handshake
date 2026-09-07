@@ -13,14 +13,14 @@ export async function waitForReceipt(publicClient: any, hash: `0x${string}`) {
     return { status: "success", transactionHash: hash || "0x", logs: [] };
   }
 
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 40; i++) {
     try {
       const receipt = await publicClient.getTransactionReceipt({ hash });
       if (receipt) return receipt;
     } catch (e) {
       // Receipt not found yet — wait and retry
     }
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   }
   throw new Error(`Transaction receipt not found for hash: ${hash}`);
 }
