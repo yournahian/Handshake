@@ -242,6 +242,33 @@ function listenToSupabaseRealtime() {
           }
         }
       }
+
+      // 2. Periodic check for buyer-authorized payout releases
+      const { data: authorized } = await supabase
+        .from("escrow_submissions")
+        .select("*")
+        .eq("buyer_authorized", true)
+        .limit(10);
+
+      if (authorized && authorized.length > 0) {
+        for (const row of authorized) {
+          const jobId = BigInt(row.job_id);
+          const job = await getJobDetails(jobId);
+          if (!job) continue;
+          const onChainStatus = Number(job[7]);
+          // If still in Funded (1) or Submitted (2) state, release payment on-chain
+          if (onChainStatus === 1 || onChainStatus === 2) {
+            console.log(`⚡ Polling Fallback: Processing buyer authorized release for Job #${row.job_id}...`);
+            const reasonHash = keccak256(toHex("BUYER_MANUAL_APPROVED"));
+            try {
+              const txHash = await releaseEscrow(jobId, reasonHash);
+              await updateDbStatus(row.job_id, "Approved", `Escrow payment released manually by buyer. Tx Hash: ${txHash}`);
+            } catch (relErr: any) {
+              console.error(`Failed to release escrow for Job #${row.job_id} in polling:`, relErr.message || relErr);
+            }
+          }
+        }
+      }
     } catch (err) {
       console.error("Error in checkPendingSubmissions:", err);
     }

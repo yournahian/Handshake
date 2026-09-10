@@ -553,7 +553,11 @@ export default function MeetupDetail() {
             } catch (dbErr) {}
           }
         }
-        alert(`Payment released successfully via bot gateway!\nTransaction Hash: ${data.txHash}`);
+        if (data.txHash) {
+          alert(`Payment released successfully via bot gateway!\nTransaction Hash: ${data.txHash}`);
+        } else {
+          alert(data.message || "Payment release authorized! Settle processing on-chain.");
+        }
         refetch();
       }
     } catch (err: any) {

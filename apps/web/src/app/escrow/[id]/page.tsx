@@ -1246,7 +1246,11 @@ export default function EscrowDetail() {
             localStorage.setItem(`arc_completed_tx_${jobId}`, data.txHash);
           } catch (err) {}
         }
-        alert(`Payment released successfully via bot gateway!\nTransaction Hash: ${data.txHash}`);
+        if (data.txHash) {
+          alert(`Payment released successfully via bot gateway!\nTransaction Hash: ${data.txHash}`);
+        } else {
+          alert(data.message || "Payment release authorized! Settle processing on-chain.");
+        }
 
         // Update local storage status
         try {

@@ -29,11 +29,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
     }
   }
 
-  // 2. Fall back to local bot backend if available
+  // 2. Fall back to bot backend if available
   try {
-    const res = await fetch(`http://localhost:4000/api/submissions/${id}`, {
+    const botUrl = process.env.BOT_SERVER_URL || process.env.NEXT_PUBLIC_BOT_SERVER_URL || "http://localhost:4000";
+    const res = await fetch(`${botUrl.replace(/\/$/, "")}/api/submissions/${id}`, {
       cache: "no-store",
-      signal: AbortSignal.timeout(1000),
+      signal: AbortSignal.timeout(2500),
     });
     if (!res.ok) {
       return NextResponse.json({ error: "No submission found" }, { status: 404 });

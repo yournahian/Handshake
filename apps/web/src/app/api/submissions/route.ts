@@ -22,17 +22,30 @@ export async function POST(request: Request) {
       }
     }
 
-    const res = await fetch(`http://localhost:4000/api/submissions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json();
-    return NextResponse.json(data, { status: res.status });
+    const botUrl = process.env.BOT_SERVER_URL || process.env.NEXT_PUBLIC_BOT_SERVER_URL || "http://localhost:4000";
+    try {
+      const res = await fetch(`${botUrl.replace(/\/$/, "")}/api/submissions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(6000),
+      });
+      const data = await res.json();
+      return NextResponse.json(data, { status: res.status });
+    } catch (botErr: any) {
+      console.warn(`Direct bot call to ${botUrl} failed:`, botErr.message || botErr);
+      if (hasSupabase) {
+        return NextResponse.json({
+          success: true,
+          message: "Submission received in cloud database. AI verification agent will evaluate shortly."
+        }, { status: 202 });
+      }
+      throw botErr;
+    }
   } catch (error: any) {
-    console.error("Failed to post submission to bot server:", error.message || error);
-    return NextResponse.json({ error: "Verification backend (bot server) is offline. Please launch the bot using 'npm run dev:bot'." }, { status: 503 });
+    console.error("Failed to post submission:", error.message || error);
+    return NextResponse.json({ error: "Verification backend is offline. Please launch the bot or check database connection." }, { status: 503 });
   }
 }
