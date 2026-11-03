@@ -69,16 +69,12 @@ function MobileNavContent() {
         className="main-header desktop-header"
         style={{ boxShadow: scrolled ? "0 2px 20px rgba(0,0,0,0.4)" : "none" }}
       >
-        <Link href="/" className="header-logo" style={{ textDecoration: "none" }}>
-          <span style={{
-            fontSize: "1.35rem",
-            fontWeight: 800,
-            letterSpacing: "-0.03em",
-            color: "var(--text-primary)",
-            fontFamily: "Space Grotesk, sans-serif"
-          }}>
-            Handshake
-          </span>
+        <Link href="/" className="header-logo" style={{ textDecoration: "none", display: "flex", alignItems: "center" }}>
+          <img
+            src="/logo.png"
+            alt="Handshake"
+            style={{ height: "26px", width: "auto", objectFit: "contain", display: "block" }}
+          />
         </Link>
 
         <nav className="main-nav">
@@ -96,16 +92,12 @@ function MobileNavContent() {
 
       {/* ── Mobile Top Bar (wallet only) ──────────────────────────────────── */}
       <div className="mobile-top-bar">
-        <Link href="/" className="header-logo" style={{ textDecoration: "none" }}>
-          <span style={{
-            fontSize: "1.15rem",
-            fontWeight: 800,
-            letterSpacing: "-0.03em",
-            color: "var(--text-primary)",
-            fontFamily: "Space Grotesk, sans-serif"
-          }}>
-            Handshake
-          </span>
+        <Link href="/" className="header-logo" style={{ textDecoration: "none", display: "flex", alignItems: "center" }}>
+          <img
+            src="/logo.png"
+            alt="Handshake"
+            style={{ height: "22px", width: "auto", objectFit: "contain", display: "block" }}
+          />
         </Link>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <NotificationBell />
