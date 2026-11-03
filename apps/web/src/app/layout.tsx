@@ -12,7 +12,7 @@ export const metadata = {
   title: "Handshake - Autonomous Escrow & Group Accountant",
   description: "Secure digital/physical escrows and group finance pools with instant settlement",
   icons: {
-    icon: "data:image/x-icon;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    icon: "/favicon.png",
   },
 };
 
@@ -30,7 +30,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="data:image/x-icon;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==" />
+        <link rel="icon" href="/favicon.png" />
         {/* Telegram Mini App SDK — loaded synchronously so WebApp is available immediately */}
         {/* eslint-disable-next-line @next/next/no-sync-scripts */}
         <script src="https://telegram.org/js/telegram-web-app.js" />
